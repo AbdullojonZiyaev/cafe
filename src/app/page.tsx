@@ -21,6 +21,12 @@ type StorySlide = {
   cards: MenuCard[];
 };
 
+type CartItem = {
+  name: string;
+  price: number;
+  quantity: number;
+};
+
 const STORY_DURATION_MS = 6500;
 
 const stories: StorySlide[] = [
@@ -30,7 +36,7 @@ const stories: StorySlide[] = [
     kicker: "Хиты вечера",
     description:
       "Смотрите подборку блюд и добавляйте любимые позиции в заказ одним нажатием.",
-    video: "/media/story-1.mp4",
+    video: "/media/story-1-mobile.mp4",
     poster: "/media/story-1.jpg",
     tint:
       "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
@@ -64,7 +70,7 @@ const stories: StorySlide[] = [
     kicker: "Быстрые фавориты",
     description:
       "Хруст, острота, цитрус и дым. Идеально для быстрого перекуса.",
-    video: "/media/story-2.mp4",
+    video: "/media/story-2-mobile.mp4",
     poster: "/media/story-2.jpg",
     tint:
       "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
@@ -98,7 +104,7 @@ const stories: StorySlide[] = [
     kicker: "Час десертов",
     description:
       "Последняя история и лучший финал. Десерты и напитки для теплого вечера.",
-    video: "/media/story-3.mp4",
+    video: "/media/story-3-mobile.mp4",
     poster: "/media/story-3.jpg",
     tint:
       "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
@@ -131,30 +137,40 @@ const stories: StorySlide[] = [
 export default function Home() {
   const [activeStory, setActiveStory] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const [cart, setCart] = useState<Record<string, CartItem>>({});
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const marqueeViewportRef = useRef<HTMLDivElement | null>(null);
   const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
-  const isPausedRef = useRef(false);
+  const isHoldingRef = useRef(false);
   const isRailInteractingRef = useRef(false);
+  const holdTimerRef = useRef<number | null>(null);
+  const holdTriggeredRef = useRef(false);
+
+  const isEffectivelyPaused = isHolding;
 
   const currentStory = stories[activeStory];
 
   useEffect(() => {
-    isPausedRef.current = isPaused;
-  }, [isPaused]);
+    isHoldingRef.current = isHolding;
+  }, [isHolding]);
 
-  const currentTime = useMemo(
-    () =>
-      new Date().toLocaleTimeString("ru-RU", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    []
-  );
+  const cartSummary = useMemo(() => {
+    const items = Object.entries(cart).map(([key, item]) => ({
+      key,
+      ...item,
+      total: item.price * item.quantity,
+    }));
+
+    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = items.reduce((sum, item) => sum + item.total, 0);
+
+    return { items, totalItems, totalPrice };
+  }, [cart]);
 
   useEffect(() => {
-    if (isPaused) {
+    if (isEffectivelyPaused) {
       return;
     }
 
@@ -173,7 +189,7 @@ export default function Home() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [activeStory, isPaused]);
+  }, [activeStory, isEffectivelyPaused]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -181,7 +197,7 @@ export default function Home() {
       return;
     }
 
-    if (isPaused) {
+    if (isEffectivelyPaused) {
       video.pause();
       return;
     }
@@ -192,7 +208,7 @@ export default function Home() {
         // Ignore autoplay interruptions caused by browser policies.
       });
     }
-  }, [activeStory, isPaused]);
+  }, [activeStory, isEffectivelyPaused]);
 
   useEffect(() => {
     const viewport = marqueeViewportRef.current;
@@ -240,7 +256,9 @@ export default function Home() {
       lastFrame = now;
 
       const shouldPause =
-        media.matches || isPausedRef.current || isRailInteractingRef.current;
+        media.matches ||
+        isHoldingRef.current ||
+        isRailInteractingRef.current;
       const targetSpeed = shouldPause ? 0 : baseSpeed;
       const ease = 1 - Math.exp(-dt * 8);
 
@@ -263,6 +281,80 @@ export default function Home() {
     };
   }, [activeStory]);
 
+  const parsePrice = (priceLabel: string) => {
+    const parsed = Number.parseInt(priceLabel.replace(/[^\d]/g, ""), 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const addToCart = (item: MenuCard) => {
+    setCart((prev) => {
+      const key = item.name;
+      const existing = prev[key];
+      const price = parsePrice(item.price);
+
+      if (existing) {
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            quantity: existing.quantity + 1,
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [key]: {
+          name: item.name,
+          price,
+          quantity: 1,
+        },
+      };
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current !== null) {
+        window.clearTimeout(holdTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startHoldPause = (pointerType: string) => {
+    if (pointerType !== "touch" && pointerType !== "pen") {
+      return;
+    }
+
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+    }
+
+    holdTriggeredRef.current = false;
+    holdTimerRef.current = window.setTimeout(() => {
+      holdTriggeredRef.current = true;
+      setIsHolding(true);
+    }, 180);
+  };
+
+  const stopHoldPause = () => {
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    setIsHolding(false);
+  };
+
+  const shouldIgnoreHoldClick = () => {
+    if (!holdTriggeredRef.current) {
+      return false;
+    }
+
+    holdTriggeredRef.current = false;
+    return true;
+  };
+
   const goNext = () => {
     setProgress(0);
     setActiveStory((current) => (current + 1) % stories.length);
@@ -273,8 +365,32 @@ export default function Home() {
     setActiveStory((current) => (current - 1 + stories.length) % stories.length);
   };
 
+  const handleNextTap = () => {
+    if (shouldIgnoreHoldClick()) {
+      return;
+    }
+
+    goNext();
+  };
+
+  const handlePrevTap = () => {
+    if (shouldIgnoreHoldClick()) {
+      return;
+    }
+
+    goPrev();
+  };
+
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-[#130c08] text-[#fff7ed]">
+    <main
+      className="relative h-dvh w-full overflow-hidden bg-[#130c08] text-[#fff7ed]"
+      onPointerDown={(event) => {
+        startHoldPause(event.pointerType);
+      }}
+      onPointerUp={stopHoldPause}
+      onPointerCancel={stopHoldPause}
+      onPointerLeave={stopHoldPause}
+    >
       <video
         ref={videoRef}
         key={currentStory.video}
@@ -282,6 +398,7 @@ export default function Home() {
         autoPlay
         muted
         playsInline
+        preload="metadata"
         poster={currentStory.poster}
         onEnded={goNext}
       >
@@ -294,13 +411,13 @@ export default function Home() {
       <button
         type="button"
         className="absolute left-0 top-0 z-20 h-[68%] w-1/2 cursor-pointer"
-        onClick={goPrev}
+        onClick={handlePrevTap}
         aria-label="Предыдущая история"
       />
       <button
         type="button"
         className="absolute right-0 top-0 z-20 h-[68%] w-1/2 cursor-pointer"
-        onClick={goNext}
+        onClick={handleNextTap}
         aria-label="Следующая история"
       />
 
@@ -328,23 +445,6 @@ export default function Home() {
               </span>
             ))}
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <p className="rounded-full border border-white/30 bg-black/20 px-3 py-1 backdrop-blur-sm">
-              Истории кафе
-            </p>
-            <div className="flex items-center gap-2">
-              <p className="rounded-full border border-white/30 bg-black/20 px-3 py-1 backdrop-blur-sm">
-                {currentTime}
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsPaused((value) => !value)}
-                className="rounded-full border border-[#ffd8ab]/55 bg-[#2f1d13]/65 px-3 py-1 text-xs font-semibold tracking-[0.08em] text-[#ffe8cb] uppercase backdrop-blur-sm"
-              >
-                {isPaused ? "Плей" : "Пауза"}
-              </button>
-            </div>
-          </div>
         </header>
 
         <div key={currentStory.id} className="mt-8 max-w-lg space-y-3 fade-in-up sm:mt-14">
@@ -365,6 +465,43 @@ export default function Home() {
         </div>
 
         <div className="mt-auto">
+          <div className="mx-auto mb-3 flex w-[80%] justify-end">
+            <div className="w-full max-w-sm rounded-2xl border border-[#ffd9ad]/40 bg-[#2d170f]/70 p-3 backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => setIsCartOpen((value) => !value)}
+                className="flex w-full items-center justify-between text-left"
+              >
+                <span className="text-xs font-semibold tracking-[0.13em] text-[#ffe0bb] uppercase">
+                  Корзина
+                </span>
+                <span className="text-sm font-semibold text-[#fff2df]">
+                  {cartSummary.totalItems} шт • {cartSummary.totalPrice} ₽
+                </span>
+              </button>
+
+              {isCartOpen ? (
+                <div className="mt-3 space-y-2 border-t border-[#ffd9ad]/25 pt-3">
+                  {cartSummary.items.length === 0 ? (
+                    <p className="text-xs text-[#ffe9cf]/80">Пока пусто</p>
+                  ) : (
+                    cartSummary.items.map((item) => (
+                      <div
+                        key={item.key}
+                        className="flex items-center justify-between text-xs text-[#fff0db]"
+                      >
+                        <p className="max-w-[62%] truncate">
+                          {item.name} x {item.quantity}
+                        </p>
+                        <p>{item.total} ₽</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           <div className="mx-auto w-[80%] overflow-hidden pb-1 rounded-3xl">
             <div
               key={currentStory.id}
@@ -393,25 +530,26 @@ export default function Home() {
                     {currentStory.cards.map((item, index) => (
                       <article
                         key={`${currentStory.id}-${groupIndex}-${item.id}`}
-                        className="marquee-card card-reveal h-full rounded-3xl border border-[#ffd9ad]/35 bg-[#2d170f]/65 p-3 shadow-[0_12px_42px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-4"
+                        className="marquee-card card-reveal flex h-full flex-col rounded-3xl border border-[#ffd9ad]/35 bg-[#2d170f]/65 p-3 shadow-[0_12px_42px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-4"
                         style={{ animationDelay: `${index * 120}ms` }}
                       >
                         <p className="text-[10px] font-semibold tracking-[0.13em] text-[#ffdcb3] uppercase sm:text-[11px] sm:tracking-[0.18em]">
                           {item.tag}
                         </p>
-                        <h2 className="mt-2 text-sm leading-tight font-semibold text-[#fff7eb] sm:text-lg">
+                        <h2 className="mt-2 line-clamp-2 min-h-[2.4rem] text-sm leading-tight font-semibold text-[#fff7eb] sm:min-h-[3.2rem] sm:text-lg">
                           {item.name}
                         </h2>
                         <p className="mt-2 line-clamp-2 text-xs text-[#ffe9cf]/85 sm:text-sm">
                           {item.detail}
                         </p>
 
-                        <div className="mt-4 flex items-center justify-between">
+                        <div className="mt-auto flex items-center justify-between pt-3">
                           <p className="text-base font-bold tracking-tight text-[#ffd8a8] sm:text-2xl">
                             {item.price}
                           </p>
                           <button
                             type="button"
+                            onClick={() => addToCart(item)}
                             className="rounded-full border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-3 py-2 text-[10px] font-semibold tracking-[0.1em] text-[#fff0db] uppercase transition hover:bg-[#ffad66]/35 sm:px-4 sm:text-xs"
                           >
                             В корзину
