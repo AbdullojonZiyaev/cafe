@@ -23,14 +23,6 @@ body {
   font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
 }
 
-.story-scroll {
-  scrollbar-width: none;
-}
-
-.story-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 .story-progress-active {
   transition: width 90ms linear;
 }
@@ -43,10 +35,28 @@ body {
   animation: card-reveal 500ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
 }
 
+.card-marquee {
+  --card-gap: 0.75rem;
+  position: relative;
+  height: 192px;
+  overflow: hidden;
+}
+
 .card-marquee-track {
-  width: max-content;
-  animation: card-marquee-right 18s linear infinite;
+  display: flex;
+  gap: var(--card-gap);
+  width: calc(200% + var(--card-gap));
   will-change: transform;
+}
+
+.card-marquee-group {
+  width: 100%;
+  display: flex;
+  gap: var(--card-gap);
+}
+
+.marquee-card {
+  width: calc((100% - (var(--card-gap) * 2)) / 3);
 }
 
 @keyframes fade-in-up {
@@ -71,31 +81,17 @@ body {
   }
 }
 
-@keyframes card-marquee-right {
-  from {
-    transform: translateX(calc(-50% - 0.375rem));
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 @media (min-width: 640px) {
-  @keyframes card-marquee-right {
-    from {
-      transform: translateX(calc(-50% - 0.5rem));
-    }
-    to {
-      transform: translateX(0);
-    }
+  .card-marquee {
+    --card-gap: 1rem;
+    height: 204px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .story-progress-active,
   .fade-in-up,
-  .card-reveal,
-  .card-marquee-track {
+  .card-reveal {
     animation: none;
     transition: none;
   }

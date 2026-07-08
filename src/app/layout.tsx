@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cafe Story Menu",
-  description: "Story-style food showcase with swipeable price cards",
+  title: "Истории кафе",
+  description: "Сторис-меню с видео и анимированными карточками блюд",
 };
 
 export default function RootLayout({

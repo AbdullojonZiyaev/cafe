@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type MenuCard = {
   id: number;
@@ -26,10 +26,10 @@ const STORY_DURATION_MS = 6500;
 const stories: StorySlide[] = [
   {
     id: 1,
-    heading: "Fresh from the grill.\nReady in minutes.",
-    kicker: "Tonight's Drops",
+    heading: "Свежо с гриля.\nГотово за минуты.",
+    kicker: "Хиты вечера",
     description:
-      "Swipe through featured plates and tap your favorite to add it to your table order.",
+      "Смотрите подборку блюд и добавляйте любимые позиции в заказ одним нажатием.",
     video: "/media/story-1.mp4",
     poster: "/media/story-1.jpg",
     tint:
@@ -37,33 +37,33 @@ const stories: StorySlide[] = [
     cards: [
       {
         id: 1,
-        name: "Smoky Truffle Burger",
-        detail: "Double patty, aged cheddar, caramelized onion",
-        price: "$14.90",
-        tag: "Chef Pick",
+        name: "Трюфельный бургер",
+        detail: "Двойная котлета, выдержанный чеддер, карамелизированный лук",
+        price: "690 ₽",
+        tag: "Выбор шефа",
       },
       {
         id: 2,
-        name: "Firecracker Shrimp Tacos",
-        detail: "Citrus slaw, avocado crema, toasted corn",
-        price: "$12.50",
-        tag: "Hot",
+        name: "Тако с креветками",
+        detail: "Цитрусовый салат, крем из авокадо, жареная кукуруза",
+        price: "590 ₽",
+        tag: "Острое",
       },
       {
         id: 3,
-        name: "Sunset Citrus Cooler",
-        detail: "Blood orange, mint, sparkling tonic",
-        price: "$6.20",
-        tag: "Fresh",
+        name: "Цитрусовый спритц",
+        detail: "Красный апельсин, мята, игристый тоник",
+        price: "320 ₽",
+        tag: "Свежесть",
       },
     ],
   },
   {
     id: 2,
-    heading: "Street food energy.\nWeekend flavor burst.",
-    kicker: "Fast Favorites",
+    heading: "Энергия стритфуда.\nВзрыв вкуса на выходных.",
+    kicker: "Быстрые фавориты",
     description:
-      "Crunch, heat, citrus, and smoke. Built for quick bites between stories.",
+      "Хруст, острота, цитрус и дым. Идеально для быстрого перекуса.",
     video: "/media/story-2.mp4",
     poster: "/media/story-2.jpg",
     tint:
@@ -71,33 +71,33 @@ const stories: StorySlide[] = [
     cards: [
       {
         id: 1,
-        name: "Crispy Chili Bites",
-        detail: "Buttermilk crunch, lime zest, spicy aioli",
-        price: "$9.80",
-        tag: "Snack",
+        name: "Хрустящие чили-байтсы",
+        detail: "Хруст в пахте, лаймовая цедра, острый айоли",
+        price: "470 ₽",
+        tag: "Закуска",
       },
       {
         id: 2,
-        name: "Loaded Street Fries",
-        detail: "Smoked paprika, cheddar rain, garlic mayo",
-        price: "$7.40",
-        tag: "Share",
+        name: "Фри по-стрит",
+        detail: "Копченая паприка, чеддер, чесночный майо",
+        price: "390 ₽",
+        tag: "На компанию",
       },
       {
         id: 3,
-        name: "Lemon Pepper Wings",
-        detail: "Charred edges, herbs, black pepper glaze",
-        price: "$11.20",
-        tag: "Trending",
+        name: "Крылья лимон-перец",
+        detail: "Легкий гриль, травы, глазурь с черным перцем",
+        price: "560 ₽",
+        tag: "Тренд",
       },
     ],
   },
   {
     id: 3,
-    heading: "Sweet finishes.\nCold sparkling sips.",
-    kicker: "Dessert Hour",
+    heading: "Сладкий финал.\nХолодные искристые напитки.",
+    kicker: "Час десертов",
     description:
-      "Last story, best finish. Treats and coolers designed for golden-hour tables.",
+      "Последняя история и лучший финал. Десерты и напитки для теплого вечера.",
     video: "/media/story-3.mp4",
     poster: "/media/story-3.jpg",
     tint:
@@ -105,24 +105,24 @@ const stories: StorySlide[] = [
     cards: [
       {
         id: 1,
-        name: "Velvet Cocoa Mousse",
-        detail: "Dark chocolate, sea salt flakes, berry dust",
-        price: "$8.40",
-        tag: "Dessert",
+        name: "Шоколадный мусс",
+        detail: "Темный шоколад, морская соль, ягодная пудра",
+        price: "410 ₽",
+        tag: "Десерт",
       },
       {
         id: 2,
-        name: "Honey Citrus Tart",
-        detail: "Flaky crust, orange curd, brûléed top",
-        price: "$7.10",
-        tag: "Baked",
+        name: "Медовый цитрус тарт",
+        detail: "Слоеная основа, апельсиновый крем, карамельная корочка",
+        price: "360 ₽",
+        tag: "Выпечка",
       },
       {
         id: 3,
-        name: "Pineapple Mint Spritz",
-        detail: "Chilled pineapple, basil syrup, tonic pop",
-        price: "$6.00",
-        tag: "Cooler",
+        name: "Ананасовый спритц",
+        detail: "Охлажденный ананас, сироп базилика, тоник",
+        price: "300 ₽",
+        tag: "Напиток",
       },
     ],
   },
@@ -131,12 +131,22 @@ const stories: StorySlide[] = [
 export default function Home() {
   const [activeStory, setActiveStory] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const marqueeViewportRef = useRef<HTMLDivElement | null>(null);
+  const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
+  const isPausedRef = useRef(false);
+  const isRailInteractingRef = useRef(false);
 
   const currentStory = stories[activeStory];
 
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
   const currentTime = useMemo(
     () =>
-      new Date().toLocaleTimeString([], {
+      new Date().toLocaleTimeString("ru-RU", {
         hour: "2-digit",
         minute: "2-digit",
       }),
@@ -144,6 +154,10 @@ export default function Home() {
   );
 
   useEffect(() => {
+    if (isPaused) {
+      return;
+    }
+
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
@@ -158,6 +172,94 @@ export default function Home() {
 
     return () => {
       window.clearInterval(timer);
+    };
+  }, [activeStory, isPaused]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    if (isPaused) {
+      video.pause();
+      return;
+    }
+
+    const playPromise = video.play();
+    if (playPromise instanceof Promise) {
+      playPromise.catch(() => {
+        // Ignore autoplay interruptions caused by browser policies.
+      });
+    }
+  }, [activeStory, isPaused]);
+
+  useEffect(() => {
+    const viewport = marqueeViewportRef.current;
+    const track = marqueeTrackRef.current;
+
+    if (!viewport || !track) {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const baseSpeed = 34;
+    let speed = baseSpeed;
+    let position = 0;
+    let span = 0;
+    let rafId = 0;
+    let lastFrame = performance.now();
+
+    const updateSpan = () => {
+      const rawGap = getComputedStyle(viewport).getPropertyValue("--card-gap").trim();
+      const gap = Number.parseFloat(rawGap);
+      const safeGap = Number.isNaN(gap) ? 12 : gap;
+      span = viewport.clientWidth + safeGap;
+    };
+
+    const applyTransform = () => {
+      track.style.transform = `translate3d(${position - span}px, 0, 0)`;
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateSpan();
+      if (span > 0) {
+        position = ((position % span) + span) % span;
+      } else {
+        position = 0;
+      }
+      applyTransform();
+    });
+
+    updateSpan();
+    applyTransform();
+    resizeObserver.observe(viewport);
+
+    const tick = (now: number) => {
+      const dt = (now - lastFrame) / 1000;
+      lastFrame = now;
+
+      const shouldPause =
+        media.matches || isPausedRef.current || isRailInteractingRef.current;
+      const targetSpeed = shouldPause ? 0 : baseSpeed;
+      const ease = 1 - Math.exp(-dt * 8);
+
+      speed += (targetSpeed - speed) * ease;
+      position += speed * dt;
+
+      if (span > 0) {
+        position %= span;
+      }
+
+      applyTransform();
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
     };
   }, [activeStory]);
 
@@ -174,6 +276,7 @@ export default function Home() {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-[#130c08] text-[#fff7ed]">
       <video
+        ref={videoRef}
         key={currentStory.video}
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay
@@ -192,13 +295,13 @@ export default function Home() {
         type="button"
         className="absolute left-0 top-0 z-20 h-[68%] w-1/2 cursor-pointer"
         onClick={goPrev}
-        aria-label="Previous story"
+        aria-label="Предыдущая история"
       />
       <button
         type="button"
         className="absolute right-0 top-0 z-20 h-[68%] w-1/2 cursor-pointer"
         onClick={goNext}
-        aria-label="Next story"
+        aria-label="Следующая история"
       />
 
       <section className="relative z-10 flex h-full flex-col px-3 pb-5 pt-4 sm:px-6 sm:pb-8">
@@ -227,11 +330,20 @@ export default function Home() {
           </div>
           <div className="flex items-center justify-between text-sm">
             <p className="rounded-full border border-white/30 bg-black/20 px-3 py-1 backdrop-blur-sm">
-              Cafe Stories
+              Истории кафе
             </p>
-            <p className="rounded-full border border-white/30 bg-black/20 px-3 py-1 backdrop-blur-sm">
-              {currentTime}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="rounded-full border border-white/30 bg-black/20 px-3 py-1 backdrop-blur-sm">
+                {currentTime}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsPaused((value) => !value)}
+                className="rounded-full border border-[#ffd8ab]/55 bg-[#2f1d13]/65 px-3 py-1 text-xs font-semibold tracking-[0.08em] text-[#ffe8cb] uppercase backdrop-blur-sm"
+              >
+                {isPaused ? "Плей" : "Пауза"}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -253,36 +365,63 @@ export default function Home() {
         </div>
 
         <div className="mt-auto">
-          <div className="-mx-3 overflow-hidden px-3 pb-1 sm:-mx-6 sm:px-6">
-            <div key={currentStory.id} className="card-marquee-track flex gap-3 sm:gap-4">
-              {[...currentStory.cards, ...currentStory.cards].map((item, index) => (
-                <article
-                  key={`${currentStory.id}-${item.id}-${index}`}
-                  aria-hidden={index >= currentStory.cards.length}
-                  className="card-reveal w-[78vw] max-w-[420px] rounded-3xl border border-[#ffd9ad]/35 bg-[#2d170f]/65 p-4 shadow-[0_12px_42px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[44vw] lg:w-[29vw]"
-                  style={{ animationDelay: `${(index % currentStory.cards.length) * 120}ms` }}
-                >
-                  <p className="text-[11px] font-semibold tracking-[0.18em] text-[#ffdcb3] uppercase">
-                    {item.tag}
-                  </p>
-                  <h2 className="mt-2 text-xl leading-tight font-semibold text-[#fff7eb]">
-                    {item.name}
-                  </h2>
-                  <p className="mt-2 text-sm text-[#ffe9cf]/85">{item.detail}</p>
+          <div className="mx-auto w-[80%] overflow-hidden pb-1 rounded-3xl">
+            <div
+              key={currentStory.id}
+              ref={marqueeViewportRef}
+              className="card-marquee relative"
+              onPointerEnter={() => {
+                isRailInteractingRef.current = true;
+              }}
+              onPointerLeave={() => {
+                isRailInteractingRef.current = false;
+              }}
+              onFocusCapture={() => {
+                isRailInteractingRef.current = true;
+              }}
+              onBlurCapture={() => {
+                isRailInteractingRef.current = false;
+              }}
+            >
+              <div ref={marqueeTrackRef} className="card-marquee-track">
+                {[0, 1].map((groupIndex) => (
+                  <div
+                    key={`${currentStory.id}-group-${groupIndex}`}
+                    className="card-marquee-group"
+                    aria-hidden={groupIndex === 1}
+                  >
+                    {currentStory.cards.map((item, index) => (
+                      <article
+                        key={`${currentStory.id}-${groupIndex}-${item.id}`}
+                        className="marquee-card card-reveal h-full rounded-3xl border border-[#ffd9ad]/35 bg-[#2d170f]/65 p-3 shadow-[0_12px_42px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-4"
+                        style={{ animationDelay: `${index * 120}ms` }}
+                      >
+                        <p className="text-[10px] font-semibold tracking-[0.13em] text-[#ffdcb3] uppercase sm:text-[11px] sm:tracking-[0.18em]">
+                          {item.tag}
+                        </p>
+                        <h2 className="mt-2 text-sm leading-tight font-semibold text-[#fff7eb] sm:text-lg">
+                          {item.name}
+                        </h2>
+                        <p className="mt-2 line-clamp-2 text-xs text-[#ffe9cf]/85 sm:text-sm">
+                          {item.detail}
+                        </p>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-2xl font-bold tracking-tight text-[#ffd8a8]">
-                      {item.price}
-                    </p>
-                    <button
-                      type="button"
-                      className="rounded-full border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-4 py-2 text-xs font-semibold tracking-[0.12em] text-[#fff0db] uppercase transition hover:bg-[#ffad66]/35"
-                    >
-                      Add
-                    </button>
+                        <div className="mt-4 flex items-center justify-between">
+                          <p className="text-base font-bold tracking-tight text-[#ffd8a8] sm:text-2xl">
+                            {item.price}
+                          </p>
+                          <button
+                            type="button"
+                            className="rounded-full border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-3 py-2 text-[10px] font-semibold tracking-[0.1em] text-[#fff0db] uppercase transition hover:bg-[#ffad66]/35 sm:px-4 sm:text-xs"
+                          >
+                            В корзину
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                   </div>
-                </article>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
