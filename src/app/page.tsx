@@ -16,6 +16,7 @@ type StorySlide = {
   kicker: string;
   description: string;
   video: string;
+  fallbackVideo: string;
   poster: string;
   tint: string;
   cards: MenuCard[];
@@ -37,6 +38,7 @@ const stories: StorySlide[] = [
     description:
       "Смотрите подборку блюд и добавляйте любимые позиции в заказ одним нажатием.",
     video: "/media/story-1-mobile.mp4",
+    fallbackVideo: "/media/story-1.mp4",
     poster: "/media/story-1.jpg",
     tint:
       "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
@@ -71,6 +73,7 @@ const stories: StorySlide[] = [
     description:
       "Хруст, острота, цитрус и дым. Идеально для быстрого перекуса.",
     video: "/media/story-2-mobile.mp4",
+    fallbackVideo: "/media/story-2.mp4",
     poster: "/media/story-2.jpg",
     tint:
       "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
@@ -105,6 +108,7 @@ const stories: StorySlide[] = [
     description:
       "Последняя история и лучший финал. Десерты и напитки для теплого вечера.",
     video: "/media/story-3-mobile.mp4",
+    fallbackVideo: "/media/story-3.mp4",
     poster: "/media/story-3.jpg",
     tint:
       "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
@@ -147,6 +151,8 @@ export default function Home() {
   const isRailInteractingRef = useRef(false);
   const holdTimerRef = useRef<number | null>(null);
   const holdTriggeredRef = useRef(false);
+  const marqueeManualOffsetRef = useRef(0);
+  const marqueeSpanRef = useRef(0);
 
   const isEffectivelyPaused = isHolding;
 
@@ -211,6 +217,26 @@ export default function Home() {
   }, [activeStory, isEffectivelyPaused]);
 
   useEffect(() => {
+    const nextStory = stories[(activeStory + 1) % stories.length];
+    const links = [nextStory.video, nextStory.fallbackVideo].map((href) => {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "video";
+      link.href = href;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    return () => {
+      links.forEach((link) => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
+      });
+    };
+  }, [activeStory]);
+
+  useEffect(() => {
     const viewport = marqueeViewportRef.current;
     const track = marqueeTrackRef.current;
 
@@ -231,10 +257,11 @@ export default function Home() {
       const gap = Number.parseFloat(rawGap);
       const safeGap = Number.isNaN(gap) ? 12 : gap;
       span = viewport.clientWidth + safeGap;
+      marqueeSpanRef.current = span;
     };
 
     const applyTransform = () => {
-      track.style.transform = `translate3d(${position - span}px, 0, 0)`;
+      track.style.transform = `translate3d(${position - span + marqueeManualOffsetRef.current}px, 0, 0)`;
     };
 
     const resizeObserver = new ResizeObserver(() => {
@@ -280,6 +307,21 @@ export default function Home() {
       resizeObserver.disconnect();
     };
   }, [activeStory]);
+
+  const nudgeMarquee = (direction: "prev" | "next") => {
+    const span = marqueeSpanRef.current;
+    if (span <= 0) {
+      return;
+    }
+
+    const step = span / 3;
+    const delta = direction === "next" ? -step : step;
+    marqueeManualOffsetRef.current += delta;
+    marqueeManualOffsetRef.current = Math.max(
+      -span,
+      Math.min(span, marqueeManualOffsetRef.current)
+    );
+  };
 
   const parsePrice = (priceLabel: string) => {
     const parsed = Number.parseInt(priceLabel.replace(/[^\d]/g, ""), 10);
@@ -393,16 +435,17 @@ export default function Home() {
     >
       <video
         ref={videoRef}
-        key={currentStory.video}
+        key={`${currentStory.video}-${currentStory.fallbackVideo}`}
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
         poster={currentStory.poster}
         onEnded={goNext}
       >
         <source src={currentStory.video} type="video/mp4" />
+        <source src={currentStory.fallbackVideo} type="video/mp4" />
       </video>
 
       <div className={`absolute inset-0 ${currentStory.tint}`} />
@@ -500,6 +543,23 @@ export default function Home() {
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="mx-auto mb-3 flex w-[80%] justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => nudgeMarquee("prev")}
+              className="rounded-full border border-[#ffd8ab]/55 bg-[#2f1d13]/70 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-[#ffe8cb] uppercase backdrop-blur-sm"
+            >
+              Влево
+            </button>
+            <button
+              type="button"
+              onClick={() => nudgeMarquee("next")}
+              className="rounded-full border border-[#ffd8ab]/55 bg-[#2f1d13]/70 px-3 py-2 text-xs font-semibold tracking-[0.08em] text-[#ffe8cb] uppercase backdrop-blur-sm"
+            >
+              Вправо
+            </button>
           </div>
 
           <div className="mx-auto w-[80%] overflow-hidden pb-1 rounded-3xl">
