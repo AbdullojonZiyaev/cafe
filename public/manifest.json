@@ -1,0 +1,29 @@
+{
+  "name": "Видеоменю Кафе",
+  "short_name": "Видеоменю",
+  "description": "Интерактивное видеоменю для планшетов с поддержкой киоск-режима",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "theme_color": "#130c08",
+  "background_color": "#130c08",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23130c08' width='192' height='192'/><text x='50%' y='50%' font-size='120' fill='%23fff7ed' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>📺</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["food", "business"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23130c08' width='540' height='720'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false
+}

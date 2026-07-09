@@ -8,6 +8,13 @@ type MenuCard = {
   detail: string;
   price: string;
   tag: string;
+  description?: string;
+  weight?: string;
+  calories?: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  allergens?: string[];
 };
 
 type StorySlide = {
@@ -26,6 +33,13 @@ type CartItem = {
   name: string;
   price: number;
   quantity: number;
+};
+
+type WorkMode = "menu" | "table";
+
+type ModalState = {
+  isOpen: boolean;
+  card: MenuCard | null;
 };
 
 const STORY_DURATION_MS = 6500;
@@ -49,6 +63,13 @@ const stories: StorySlide[] = [
         detail: "Двойная котлета, выдержанный чеддер, карамелизированный лук",
         price: "690 ₽",
         tag: "Выбор шефа",
+        description: "Премиальный бургер с двойной говяжьей котлетой, трюфельным маслом, выдержанным чеддером и карамелизированным луком. Подается с картофелем фри.",
+        weight: "350г",
+        calories: 580,
+        protein: 35,
+        fat: 28,
+        carbs: 42,
+        allergens: ["глютен", "молочные продукты", "сезам"],
       },
       {
         id: 2,
@@ -56,6 +77,13 @@ const stories: StorySlide[] = [
         detail: "Цитрусовый салат, крем из авокадо, жареная кукуруза",
         price: "590 ₽",
         tag: "Острое",
+        description: "Хрустящие тако с крупными креветками, цитрусовым салатом, сливочным кремом из авокадо и жареной кукурузой.",
+        weight: "280г",
+        calories: 420,
+        protein: 28,
+        fat: 18,
+        carbs: 35,
+        allergens: ["морепродукты", "молочные продукты"],
       },
       {
         id: 3,
@@ -63,6 +91,13 @@ const stories: StorySlide[] = [
         detail: "Красный апельсин, мята, игристый тоник",
         price: "320 ₽",
         tag: "Свежесть",
+        description: "Освежающий коктейль с красным апельсином, свежей мятой и игристым тоником.",
+        weight: "350мл",
+        calories: 120,
+        protein: 0,
+        fat: 0,
+        carbs: 28,
+        allergens: [],
       },
     ],
   },
@@ -84,6 +119,13 @@ const stories: StorySlide[] = [
         detail: "Хруст в пахте, лаймовая цедра, острый айоли",
         price: "470 ₽",
         tag: "Закуска",
+        description: "Небольшие кусочки курицы в хрустящей пахте с острым айоли и лаймовой цедрой.",
+        weight: "180г",
+        calories: 380,
+        protein: 24,
+        fat: 18,
+        carbs: 28,
+        allergens: ["яйца", "молочные продукты"],
       },
       {
         id: 2,
@@ -91,6 +133,13 @@ const stories: StorySlide[] = [
         detail: "Копченая паприка, чеддер, чесночный майо",
         price: "390 ₽",
         tag: "На компанию",
+        description: "Хрустящий картофель фри с копченой паприкой, расплавленным чеддером и чесночным майонезом.",
+        weight: "250г",
+        calories: 520,
+        protein: 8,
+        fat: 26,
+        carbs: 62,
+        allergens: ["молочные продукты"],
       },
       {
         id: 3,
@@ -98,6 +147,13 @@ const stories: StorySlide[] = [
         detail: "Легкий гриль, травы, глазурь с черным перцем",
         price: "560 ₽",
         tag: "Тренд",
+        description: "Куриные крылья на гриле с глазурью из черного перца и лимона, свежими травами.",
+        weight: "320г",
+        calories: 480,
+        protein: 42,
+        fat: 22,
+        carbs: 12,
+        allergens: [],
       },
     ],
   },
@@ -119,6 +175,13 @@ const stories: StorySlide[] = [
         detail: "Темный шоколад, морская соль, ягодная пудра",
         price: "410 ₽",
         tag: "Десерт",
+        description: "Нежный мусс из темного шоколада с морской солью и ягодной пудрой. Подается со сливками.",
+        weight: "150г",
+        calories: 320,
+        protein: 4,
+        fat: 18,
+        carbs: 38,
+        allergens: ["молочные продукты", "орехи"],
       },
       {
         id: 2,
@@ -126,6 +189,13 @@ const stories: StorySlide[] = [
         detail: "Слоеная основа, апельсиновый крем, карамельная корочка",
         price: "360 ₽",
         tag: "Выпечка",
+        description: "Хрустящий слоеный тарт с апельсиновым кремом и медовой карамельной корочкой.",
+        weight: "120г",
+        calories: 380,
+        protein: 3,
+        fat: 16,
+        carbs: 52,
+        allergens: ["глютен", "яйца", "молочные продукты"],
       },
       {
         id: 3,
@@ -133,6 +203,13 @@ const stories: StorySlide[] = [
         detail: "Охлажденный ананас, сироп базилика, тоник",
         price: "300 ₽",
         tag: "Напиток",
+        description: "Освежающий коктейль с охлажденным ананасом, сиропом из базилика и игристым тоником.",
+        weight: "350мл",
+        calories: 140,
+        protein: 0,
+        fat: 0,
+        carbs: 32,
+        allergens: [],
       },
     ],
   },
@@ -144,6 +221,10 @@ export default function Home() {
   const [isHolding, setIsHolding] = useState(false);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [modal, setModal] = useState<ModalState>({ isOpen: false, card: null });
+  const [notification, setNotification] = useState<{ isVisible: boolean; message: string }>({ isVisible: false, message: "" });
+  const [workMode, setWorkMode] = useState<WorkMode>("menu");
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const marqueeViewportRef = useRef<HTMLDivElement | null>(null);
   const marqueeTrackRef = useRef<HTMLDivElement | null>(null);
@@ -363,6 +444,102 @@ export default function Home() {
     };
   }, []);
 
+  const enterKioskMode = async () => {
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      }
+    } catch (err) {
+      console.warn("Kiosk mode not supported:", err);
+    }
+  };
+
+  const exitKioskMode = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.warn("Could not exit fullscreen:", err);
+    }
+  };
+
+  const openModal = (card: MenuCard) => {
+    setModal({ isOpen: true, card });
+  };
+
+  const closeModal = () => {
+    setModal({ isOpen: false, card: null });
+  };
+
+  const submitOrder = () => {
+    const totalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
+    if (totalItems === 0) {
+      setNotification({ isVisible: true, message: "Корзина пуста. Добавьте блюда для заказа." });
+      setTimeout(() => setNotification({ isVisible: false, message: "" }), 3000);
+      return;
+    }
+
+    setNotification({
+      isVisible: true,
+      message: "Ваш заказ принят! Официант скоро подойдет.",
+    });
+
+    setTimeout(() => {
+      setCart({});
+      setIsCartOpen(false);
+      setNotification({ isVisible: false, message: "" });
+    }, 2500);
+  };
+
+  const swipeStartX = useRef(0);
+  const swipeStartY = useRef(0);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.altKey && event.key === "t") {
+        event.preventDefault();
+        setShowAdminPanel((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const handleSwipeStart = (e: React.TouchEvent) => {
+    swipeStartX.current = e.touches[0]?.clientX || 0;
+    swipeStartY.current = e.touches[0]?.clientY || 0;
+  };
+
+  const handleSwipeEnd = (e: React.TouchEvent) => {
+    const endX = e.changedTouches[0]?.clientX || 0;
+    const endY = e.changedTouches[0]?.clientY || 0;
+
+    const deltaX = endX - swipeStartX.current;
+    const deltaY = endY - swipeStartY.current;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    // Only consider horizontal swipes (X movement > Y movement and > 50px)
+    if (absDeltaX > absDeltaY && absDeltaX > 50) {
+      if (deltaX > 0) {
+        // Swipe right = previous
+        nudgeMarquee("prev");
+      } else {
+        // Swipe left = next
+        nudgeMarquee("next");
+      }
+    }
+  };
+
+  const toggleWorkMode = () => {
+    setWorkMode((prev) => (prev === "menu" ? "table" : "menu"));
+  };
+
   const startHoldPause = (pointerType: string) => {
     if (pointerType !== "touch" && pointerType !== "pen") {
       return;
@@ -528,17 +705,28 @@ export default function Home() {
                   {cartSummary.items.length === 0 ? (
                     <p className="text-xs text-[#ffe9cf]/80">Пока пусто</p>
                   ) : (
-                    cartSummary.items.map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between text-xs text-[#fff0db]"
-                      >
-                        <p className="max-w-[62%] truncate">
-                          {item.name} x {item.quantity}
-                        </p>
-                        <p>{item.total} ₽</p>
-                      </div>
-                    ))
+                    <>
+                      {cartSummary.items.map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center justify-between text-xs text-[#fff0db]"
+                        >
+                          <p className="max-w-[62%] truncate">
+                            {item.name} x {item.quantity}
+                          </p>
+                          <p>{item.total} ₽</p>
+                        </div>
+                      ))}
+                      {workMode === "table" && (
+                        <button
+                          type="button"
+                          onClick={submitOrder}
+                          className="mt-3 w-full rounded-lg border border-[#ffad66]/60 bg-[#ffad66]/25 px-3 py-2 text-xs font-semibold tracking-[0.1em] text-[#fff0db] uppercase transition hover:bg-[#ffad66]/40"
+                        >
+                          Заказать
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               ) : null}
@@ -579,6 +767,8 @@ export default function Home() {
               onBlurCapture={() => {
                 isRailInteractingRef.current = false;
               }}
+              onTouchStart={handleSwipeStart}
+              onTouchEnd={handleSwipeEnd}
             >
               <div ref={marqueeTrackRef} className="card-marquee-track">
                 {[0, 1].map((groupIndex) => (
@@ -593,9 +783,19 @@ export default function Home() {
                         className="marquee-card card-reveal flex h-full flex-col rounded-3xl border border-[#ffd9ad]/35 bg-[#2d170f]/65 p-3 shadow-[0_12px_42px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-4"
                         style={{ animationDelay: `${index * 120}ms` }}
                       >
-                        <p className="text-[10px] font-semibold tracking-[0.13em] text-[#ffdcb3] uppercase sm:text-[11px] sm:tracking-[0.18em]">
-                          {item.tag}
-                        </p>
+                        <div className="flex items-start justify-between">
+                          <p className="text-[10px] font-semibold tracking-[0.13em] text-[#ffdcb3] uppercase sm:text-[11px] sm:tracking-[0.18em]">
+                            {item.tag}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openModal(item)}
+                            className="flex h-6 w-6 items-center justify-center rounded-full bg-[#ffad66]/20 text-[10px] font-bold text-[#ffe0bb] hover:bg-[#ffad66]/35 transition"
+                            aria-label="Информация о блюде"
+                          >
+                            ℹ
+                          </button>
+                        </div>
                         <h2 className="mt-2 line-clamp-2 min-h-[2.4rem] text-sm leading-tight font-semibold text-[#fff7eb] sm:min-h-[3.2rem] sm:text-lg">
                           {item.name}
                         </h2>
@@ -624,6 +824,139 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Admin Panel (Hidden) */}
+      {showAdminPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur">
+          <div className="rounded-2xl bg-[#2d170f] p-6 text-[#fff7ed] max-w-sm w-full mx-4">
+            <h2 className="text-xl font-bold mb-4">Админ-панель</h2>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  enterKioskMode();
+                  setShowAdminPanel(false);
+                }}
+                className="w-full rounded-lg border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-4 py-2 text-sm font-semibold text-[#fff0db] hover:bg-[#ffad66]/35"
+              >
+                Киоск-режим (Fullscreen)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  exitKioskMode();
+                  setShowAdminPanel(false);
+                }}
+                className="w-full rounded-lg border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-4 py-2 text-sm font-semibold text-[#fff0db] hover:bg-[#ffad66]/35"
+              >
+                Выход из Fullscreen
+              </button>
+              <button
+                type="button"
+                onClick={toggleWorkMode}
+                className="w-full rounded-lg border border-[#ffd8ab]/55 bg-[#ffad66]/20 px-4 py-2 text-sm font-semibold text-[#fff0db] hover:bg-[#ffad66]/35"
+              >
+                Режим: {workMode === "menu" ? "Меню" : "Интерактивный стол"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAdminPanel(false)}
+                className="w-full rounded-lg border border-[#ffd8ab]/55 bg-[#2f1d13]/70 px-4 py-2 text-sm font-semibold text-[#fff0db] hover:bg-[#2f1d13]/90"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {modal.isOpen && modal.card && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur" onClick={closeModal}>
+          <div
+            className="w-full rounded-t-3xl sm:rounded-3xl bg-[#2d170f] p-6 max-w-md sm:max-h-[80vh] overflow-y-auto text-[#fff7ed] animate-in slide-in-from-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">{modal.card.name}</h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="text-2xl font-bold text-[#ffe0bb] hover:text-[#fff7ed]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {modal.card.description && (
+                <p className="text-sm text-[#ffe9cf]">{modal.card.description}</p>
+              )}
+
+              {modal.card.weight && (
+                <div className="text-sm">
+                  <span className="font-semibold text-[#ffdcb3]">Выход:</span>
+                  <span className="ml-2 text-[#ffe9cf]">{modal.card.weight}</span>
+                </div>
+              )}
+
+              {/* Nutritional Info */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#ffd9ad]/25">
+                {modal.card.calories && (
+                  <div className="text-xs">
+                    <span className="font-semibold text-[#ffdcb3]">Калории</span>
+                    <p className="text-[#ffe9cf]">{modal.card.calories} ккал</p>
+                  </div>
+                )}
+                {modal.card.protein && (
+                  <div className="text-xs">
+                    <span className="font-semibold text-[#ffdcb3]">Белки</span>
+                    <p className="text-[#ffe9cf]">{modal.card.protein}г</p>
+                  </div>
+                )}
+                {modal.card.fat && (
+                  <div className="text-xs">
+                    <span className="font-semibold text-[#ffdcb3]">Жиры</span>
+                    <p className="text-[#ffe9cf]">{modal.card.fat}г</p>
+                  </div>
+                )}
+                {modal.card.carbs && (
+                  <div className="text-xs">
+                    <span className="font-semibold text-[#ffdcb3]">Углеводы</span>
+                    <p className="text-[#ffe9cf]">{modal.card.carbs}г</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Allergens */}
+              {modal.card.allergens && modal.card.allergens.length > 0 && (
+                <div className="pt-3 border-t border-[#ffd9ad]/25">
+                  <p className="text-xs font-semibold text-[#ff6b6b] mb-2">⚠️ Аллергены:</p>
+                  <p className="text-xs text-[#ffe9cf]">{modal.card.allergens.join(", ")}</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  addToCart(modal.card!);
+                  closeModal();
+                }}
+                className="w-full mt-4 rounded-lg border border-[#ffad66]/60 bg-[#ffad66]/25 px-4 py-3 text-sm font-semibold text-[#fff0db] uppercase transition hover:bg-[#ffad66]/40"
+              >
+                В корзину
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Notification */}
+      {notification.isVisible && (
+        <div className="fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 z-50 rounded-2xl border border-[#ffd9ad]/40 bg-[#2d170f]/90 p-4 backdrop-blur-md animate-in fade-in slide-in-from-bottom">
+          <p className="text-sm font-semibold text-[#ffe0bb]">{notification.message}</p>
+        </div>
+      )}
     </main>
   );
 }
