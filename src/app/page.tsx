@@ -595,10 +595,11 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Category card gallery — swipe left/right to browse categories */}
+        {/* Category card gallery — carousel with center focus */}
         <div
           ref={catContainerRef}
           className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 no-scrollbar"
+          style={{ perspective: "1200px" }}
           onTouchStart={handleCatSwipeStart}
           onTouchEnd={handleCatSwipeEnd}
         >
@@ -611,15 +612,25 @@ export default function Home() {
                 data-cat-id={cat.id}
                 type="button"
                 onClick={() => jumpToCategory(cat.id)}
-                className={`flex flex-shrink-0 snap-center w-[45%] sm:w-[38%] flex-col items-center justify-center gap-1.5 rounded-2xl border py-4 backdrop-blur-md transition ${
+                className={`flex flex-shrink-0 snap-center w-[45%] sm:w-[38%] flex-col items-center justify-center gap-1.5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${
                   isActive
-                    ? "border-[#ffad66]/60 bg-[#ffad66]/20 text-[#ffd8a8] shadow-[0_0_20px_rgba(255,173,102,0.2)]"
-                    : "border-white/12 bg-black/35 text-white/55"
+                    ? "border-[#ffad66]/70 bg-[#ffad66]/25 text-[#ffd8a8] shadow-[0_0_30px_rgba(255,173,102,0.3)] py-5"
+                    : "border-white/10 bg-black/40 text-white/45 py-4 opacity-60"
                 }`}
+                style={{
+                  transform: isActive ? "scale(1) translateZ(20px)" : "scale(0.8) translateZ(-60px)",
+                  transformStyle: "preserve-3d",
+                }}
               >
-                <span className="text-3xl leading-none">{cat.icon}</span>
-                <span className="mt-1 text-sm font-bold tracking-wide">{cat.name}</span>
-                <span className="text-[10px] text-white/40">{count} блюда</span>
+                <span className={`leading-none transition-all duration-300 ${isActive ? "text-4xl" : "text-2xl"}`}>
+                  {cat.icon}
+                </span>
+                <span className={`tracking-wide transition-all duration-300 ${isActive ? "mt-2 text-base font-bold" : "mt-0.5 text-xs font-semibold"}`}>
+                  {cat.name}
+                </span>
+                <span className={`transition-all duration-300 ${isActive ? "text-[11px] text-[#ffd8a8]/50 mt-1" : "text-[9px] text-white/25"}`}>
+                  {count} блюда
+                </span>
               </button>
             );
           })}
