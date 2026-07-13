@@ -719,19 +719,13 @@ export default function Home() {
                   <p className="text-base font-bold text-[#fff7ed]">Итого</p>
                   <p className="text-2xl font-bold text-[#ffd8a8]">{cartSummary.totalPrice} ₽</p>
                 </div>
-                {workMode === "table" ? (
-                  <button
-                    type="button"
-                    onClick={submitOrder}
-                    className="mt-5 w-full rounded-2xl bg-[#ffad66] py-4 text-base font-bold uppercase tracking-wide text-[#1a0d07] transition hover:bg-[#ffbd80] active:scale-[0.98]"
-                  >
-                    Заказать
-                  </button>
-                ) : (
-                  <p className="mt-4 text-center text-xs text-[#ffe9cf]/50">
-                    Сообщите официанту о своём выборе
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={submitOrder}
+                  className="mt-5 w-full rounded-2xl bg-[#ffad66] py-4 text-base font-bold uppercase tracking-wide text-[#1a0d07] transition hover:bg-[#ffbd80] active:scale-[0.98]"
+                >
+                  Заказать
+                </button>
               </>
             )}
           </div>
@@ -780,14 +774,13 @@ export default function Home() {
       {/* ─── PRODUCT DETAIL MODAL ───────────────────────────── */}
       {modal.isOpen && modal.dish && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-lg animate-in slide-in-from-bottom rounded-t-3xl bg-[#180e08] p-6 pb-8 max-h-[82vh] overflow-y-auto"
+            className="w-full max-w-lg max-h-[90vh] animate-in fade-in rounded-3xl bg-[#180e08] p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-bold text-[#fff7ed]">{modal.dish.name}</h2>
