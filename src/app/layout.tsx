@@ -44,39 +44,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        {process.env.NODE_ENV !== "production" ? (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function () {
-                  if (typeof window === "undefined") return;
-                  if (!("serviceWorker" in navigator) || !("caches" in window)) return;
-
-                  Promise.all([
-                    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                      return Promise.all(
-                        registrations.map(function (registration) {
-                          return registration.unregister().catch(function () {});
-                        })
-                      );
-                    }),
-                    caches.keys().then(function (keys) {
-                      return Promise.all(
-                        keys.map(function (key) {
-                          return caches.delete(key).catch(function () {});
-                        })
-                      );
-                    }),
-                  ]).finally(function () {
-                    if (navigator.serviceWorker.controller) {
-                      window.location.reload();
-                    }
-                  });
-                })();
-              `,
-            }}
-          />
-        ) : null}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

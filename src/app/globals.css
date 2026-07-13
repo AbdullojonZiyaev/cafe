@@ -38,7 +38,6 @@ body {
 .card-marquee {
   --card-gap: 0.75rem;
   position: relative;
-  height: 192px;
   overflow: hidden;
 }
 
@@ -57,6 +56,15 @@ body {
 
 .marquee-card {
   width: calc((100% - (var(--card-gap) * 2)) / 3);
+}
+
+/* Hide scrollbar for category nav */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes fade-in-up {
@@ -111,13 +119,6 @@ body {
 
 .slide-in-from-bottom {
   animation: slide-in-from-bottom 300ms ease-out;
-}
-
-@media (min-width: 640px) {
-  .card-marquee {
-    --card-gap: 1rem;
-    height: 204px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
