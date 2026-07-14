@@ -328,6 +328,7 @@ export default function Home() {
   const [activeDishIndex, setActiveDishIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [modal, setModal] = useState<ModalState>({ isOpen: false, dish: null });
@@ -371,7 +372,7 @@ export default function Home() {
   const currentDish = dishes[activeDishIndex];
   const categoryDishes = dishes.filter((d) => d.categoryId === currentDish.categoryId);
   const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish.id);
-  const isEffectivelyPaused = isHolding;
+  const isEffectivelyPaused = isHolding || isWelcomeOpen;
 
   const cartSummary = useMemo(() => {
     const items = Object.entries(cart).map(([key, item]) => ({
@@ -487,10 +488,13 @@ export default function Home() {
         event.preventDefault();
         setShowAdminPanel((prev) => !prev);
       }
+      if (event.key === "Escape" && isWelcomeOpen) {
+        setIsWelcomeOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isWelcomeOpen]);
 
   const parsePrice = (priceLabel: string) => {
     const parsed = Number.parseInt(priceLabel.replace(/[^\d]/g, ""), 10);
@@ -669,6 +673,23 @@ export default function Home() {
       onTouchStart={handleSwipeStart}
       onTouchEnd={handleSwipeEnd}
     >
+      {isWelcomeOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md animate-in fade-in rounded-3xl border border-[#C0F336]/40 bg-[#180e08] px-6 py-7 text-center text-[#fff7ed] shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#C0F336]/80">Welcome</p>
+            <h2 className="mt-3 text-2xl font-bold leading-tight">Thank you and welcome to the "reatraun name"</h2>
+            <p className="mt-3 text-sm text-[#C0F336]/75">Tap continue to start browsing the menu.</p>
+            <button
+              type="button"
+              onClick={() => setIsWelcomeOpen(false)}
+              className="mt-6 w-full rounded-2xl bg-[#C0F336] py-3 text-sm font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Full-screen background video */}
       <video
         ref={videoRef}
@@ -737,11 +758,11 @@ export default function Home() {
           <span className="inline-block rounded-full border border-white/20 bg-black/30 px-3 py-0.5 text-[10px] font-bold tracking-[0.22em] text-white/75 uppercase backdrop-blur-sm">
             {currentDish.tag}
           </span>
-          <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="mt-2 flex items-start flex-col  gap-3">
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-lg sm:text-4xl">
               {currentDish.name}
             </h1>
-            <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[#ffd8a8] drop-shadow sm:text-3xl">
+            <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[#C0F336] drop-shadow sm:text-3xl">
               {currentDish.price}
             </span>
           </div>
@@ -762,7 +783,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => addToCart(currentDish)}
-            className="flex-1 rounded-2xl bg-[#ffad66] py-3 text-sm font-bold uppercase tracking-wide text-[#1a0d07] shadow-lg transition hover:bg-[#ffbd80] active:scale-[0.97]"
+            className="flex-1 rounded-2xl bg-[#C0F336] py-3 text-sm font-bold uppercase tracking-wide text-[#122000] shadow-lg transition hover:bg-[#d4f85f] active:scale-[0.97]"
           >
             Выбрать
           </button>
@@ -788,7 +809,7 @@ export default function Home() {
                 onClick={() => jumpToCategory(cat.id)}
                 className={`flex flex-shrink-0 snap-center w-[45%] sm:w-[38%] flex-col items-center justify-center gap-1.5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${
                   isActive
-                    ? "border-[#ffad66]/70 bg-[#ffad66]/25 text-[#ffd8a8] shadow-[0_0_30px_rgba(255,173,102,0.3)] py-4"
+                    ? "border-[#C0F336]/70 bg-[#C0F336]/20 text-[#C0F336] shadow-[0_0_30px_rgba(192,243,54,0.35)] py-4"
                     : "border-white/10 bg-black/40 text-white/45 py-4 opacity-60"
                 }`}
                 style={{
@@ -802,7 +823,7 @@ export default function Home() {
                 <span className={`mt-1 text-sm tracking-wide transition-all duration-300 ${isActive ? "font-bold" : "font-semibold"}`}>
                   {cat.name}
                 </span>
-                <span className={`text-[10px] transition-all duration-300 ${isActive ? "mt-1 text-[#ffd8a8]/50" : "mt-1 text-white/25"}`}>
+                <span className={`text-[10px] transition-all duration-300 ${isActive ? "mt-1 text-[#C0F336]/60" : "mt-1 text-white/25"}`}>
                   {count} блюда
                 </span>
               </button>
@@ -815,7 +836,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-6 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#ffad66] shadow-2xl transition hover:bg-[#ffbd80] active:scale-95"
+        className="fixed bottom-6 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#C0F336] shadow-2xl transition hover:bg-[#d4f85f] active:scale-95"
         aria-label="Открыть корзину"
       >
         <svg
@@ -863,7 +884,7 @@ export default function Home() {
             </div>
 
             {cartSummary.items.length === 0 ? (
-              <p className="py-10 text-center text-sm text-[#ffe9cf]/60">
+              <p className="py-10 text-center text-sm text-[#C0F336]/60">
                 Корзина пуста — добавьте блюда нажатием «В корзину»
               </p>
             ) : (
@@ -873,10 +894,10 @@ export default function Home() {
                     <div key={item.key} className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[#fff7ed]">{item.name}</p>
-                        <p className="text-xs text-[#ffd8a8]">{item.price} ₽ × {item.quantity}</p>
+                        <p className="text-xs text-[#C0F336]">{item.price} ₽ × {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#ffd8a8]">{item.total} ₽</span>
+                        <span className="text-sm font-bold text-[#C0F336]">{item.total} ₽</span>
                         <button
                           type="button"
                           onClick={() => removeFromCart(item.key)}
@@ -891,12 +912,12 @@ export default function Home() {
                 </div>
                 <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
                   <p className="text-base font-bold text-[#fff7ed]">Итого</p>
-                  <p className="text-2xl font-bold text-[#ffd8a8]">{cartSummary.totalPrice} ₽</p>
+                  <p className="text-2xl font-bold text-[#C0F336]">{cartSummary.totalPrice} ₽</p>
                 </div>
                 <button
                   type="button"
                   onClick={submitOrder}
-                  className="mt-5 w-full rounded-2xl bg-[#ffad66] py-4 text-base font-bold uppercase tracking-wide text-[#1a0d07] transition hover:bg-[#ffbd80] active:scale-[0.98]"
+                  className="mt-5 w-full rounded-2xl bg-[#C0F336] py-4 text-base font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
                 >
                   Заказать
                 </button>
@@ -915,28 +936,28 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => { enterKioskMode(); setShowAdminPanel(false); }}
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#fff0db] hover:bg-white/20"
+                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#C0F336]/95 hover:bg-white/20"
               >
                 Включить Киоск-режим
               </button>
               <button
                 type="button"
                 onClick={() => { exitKioskMode(); setShowAdminPanel(false); }}
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#fff0db] hover:bg-white/20"
+                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#C0F336]/95 hover:bg-white/20"
               >
                 Выйти из Fullscreen
               </button>
               <button
                 type="button"
                 onClick={toggleWorkMode}
-                className="w-full rounded-xl border border-[#ffad66]/30 bg-[#ffad66]/15 px-4 py-3 text-sm font-semibold text-[#ffd8a8] hover:bg-[#ffad66]/25"
+                className="w-full rounded-xl border border-[#C0F336]/30 bg-[#C0F336]/15 px-4 py-3 text-sm font-semibold text-[#C0F336] hover:bg-[#C0F336]/25"
               >
                 Режим: {workMode === "menu" ? "Меню (официант)" : "Интерактивный стол"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAdminPanel(false)}
-                className="w-full rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-[#ffe0bb]/70 hover:bg-white/10"
+                className="w-full rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-[#C0F336]/70 hover:bg-white/10"
               >
                 Закрыть
               </button>
@@ -959,7 +980,7 @@ export default function Home() {
               <div>
                 <h2 className="text-2xl font-bold text-[#fff7ed]">{modal.dish.name}</h2>
                 {modal.dish.weight && (
-                  <p className="mt-1 text-sm text-[#ffd8a8]">{modal.dish.weight}</p>
+                  <p className="mt-1 text-sm text-[#C0F336]">{modal.dish.weight}</p>
                 )}
               </div>
               <button
@@ -972,7 +993,7 @@ export default function Home() {
             </div>
             <div className="space-y-5">
               {modal.dish.description && (
-                <p className="text-sm leading-relaxed text-[#ffe9cf]/90">
+                <p className="text-sm leading-relaxed text-[#C0F336]/90">
                   {modal.dish.description}
                 </p>
               )}
@@ -987,7 +1008,7 @@ export default function Home() {
                     value ? (
                       <div key={label} className="text-center">
                         <p className="text-base font-bold text-[#fff7ed]">{value}</p>
-                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#ffd8a8]/70">{label}</p>
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#C0F336]/70">{label}</p>
                       </div>
                     ) : null
                   )}
@@ -1005,7 +1026,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => { addToCart(modal.dish!); closeModal(); }}
-                className="w-full rounded-2xl bg-[#ffad66] py-4 text-base font-bold uppercase tracking-wide text-[#1a0d07] transition hover:bg-[#ffbd80] active:scale-[0.98]"
+                className="w-full rounded-2xl bg-[#C0F336] py-4 text-base font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
               >
                 Выбрать — {modal.dish.price}
               </button>
@@ -1017,7 +1038,7 @@ export default function Home() {
       {/* ─── NOTIFICATION TOAST ─────────────────────────────── */}
       {notification.isVisible && (
         <div className="fixed bottom-24 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom rounded-2xl bg-[#1a0d07]/95 px-5 py-4 shadow-2xl backdrop-blur-md sm:left-auto sm:right-6 sm:w-80">
-          <p className="text-sm font-semibold text-[#ffe0bb]">{notification.message}</p>
+          <p className="text-sm font-semibold text-[#C0F336]">{notification.message}</p>
         </div>
       )}
     </main>
