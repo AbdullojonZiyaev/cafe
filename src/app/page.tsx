@@ -341,7 +341,6 @@ export default function Home() {
   const holdTriggeredRef = useRef(false);
   const swipeStartX = useRef(0);
   const swipeStartY = useRef(0);
-  const catSwipeStartX = useRef(0);
   const catContainerRef = useRef<HTMLDivElement | null>(null);
 
   const playbackDishIndexes = categories.flatMap((cat) =>
@@ -593,21 +592,10 @@ export default function Home() {
 
   const handleCatSwipeStart = (e: React.TouchEvent) => {
     e.stopPropagation();
-    catSwipeStartX.current = e.touches[0]?.clientX || 0;
   };
 
   const handleCatSwipeEnd = (e: React.TouchEvent) => {
     e.stopPropagation();
-    const endX = e.changedTouches[0]?.clientX || 0;
-    const delta = endX - catSwipeStartX.current;
-    if (Math.abs(delta) > 50) {
-      const currentCatIdx = categories.findIndex((c) => c.id === currentDish.categoryId);
-      if (delta < 0) {
-        jumpToCategory(categories[(currentCatIdx + 1) % categories.length].id);
-      } else {
-        jumpToCategory(categories[(currentCatIdx - 1 + categories.length) % categories.length].id);
-      }
-    }
   };
 
   const jumpToCategory = (categoryId: number) => {
