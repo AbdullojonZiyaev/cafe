@@ -342,6 +342,8 @@ export default function Home() {
   const swipeStartX = useRef(0);
   const swipeStartY = useRef(0);
   const catContainerRef = useRef<HTMLDivElement | null>(null);
+  const isWrappingCategoriesRef = useRef(false);
+  const categorySnapRestoreRef = useRef<number | null>(null);
   const loopedCategories = [...categories, ...categories, ...categories];
 
   const playbackDishIndexes = categories.flatMap((cat) =>
@@ -467,7 +469,15 @@ export default function Home() {
   useEffect(() => {
     const container = catContainerRef.current;
     if (!container) return;
-    container.scrollLeft = container.scrollWidth / 3;
+    requestAnimationFrame(() => {
+      container.scrollLeft = container.scrollWidth / 3;
+    });
+
+    return () => {
+      if (categorySnapRestoreRef.current !== null) {
+        window.cancelAnimationFrame(categorySnapRestoreRef.current);
+      }
+    };
   }, []);
 
   // Secret admin shortcut Ctrl+Alt+T
@@ -620,13 +630,25 @@ export default function Home() {
   const handleCategoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
     const segmentWidth = container.scrollWidth / 3;
-    if (segmentWidth === 0) return;
+    if (segmentWidth === 0 || isWrappingCategoriesRef.current) return;
 
-    if (container.scrollLeft < segmentWidth * 0.2) {
-      container.scrollLeft += segmentWidth;
-    } else if (container.scrollLeft > segmentWidth * 1.8) {
-      container.scrollLeft -= segmentWidth;
-    }
+    const minMiddle = segmentWidth;
+    const maxMiddle = segmentWidth * 2;
+    const currentLeft = container.scrollLeft;
+
+    if (currentLeft >= minMiddle && currentLeft <= maxMiddle) return;
+
+    isWrappingCategoriesRef.current = true;
+    const relativeOffset = ((currentLeft % segmentWidth) + segmentWidth) % segmentWidth;
+
+    container.style.scrollSnapType = "none";
+    container.scrollLeft = minMiddle + relativeOffset;
+
+    categorySnapRestoreRef.current = window.requestAnimationFrame(() => {
+      container.style.scrollSnapType = "x mandatory";
+      isWrappingCategoriesRef.current = false;
+      categorySnapRestoreRef.current = null;
+    });
   };
 
   const jumpToCategory = (categoryId: number) => {
