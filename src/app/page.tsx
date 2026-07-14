@@ -46,6 +46,9 @@ const categories: Category[] = [
   { id: 1, name: "Супы", icon: "🍲" },
   { id: 2, name: "Салаты", icon: "🥗" },
   { id: 3, name: "Десерты", icon: "🍰" },
+  { id: 4, name: "Паста", icon: "🍝" },
+  { id: 5, name: "Гриль", icon: "🔥" },
+  { id: 6, name: "Напитки", icon: "🍹" },
 ];
 
 const dishes: Dish[] = [
@@ -211,6 +214,114 @@ const dishes: Dish[] = [
     carbs: 32,
     allergens: [],
   },
+  {
+    id: 10,
+    categoryId: 1,
+    name: "Рамен с томленой говядиной",
+    price: "640 ₽",
+    tag: "Хит",
+    video: "/media/story-1-mobile.mp4",
+    fallbackVideo: "/media/story-1.mp4",
+    poster: "/media/story-1.jpg",
+    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
+    description: "Насыщенный бульон, томленая говядина, лапша, маринованное яйцо и зеленый лук.",
+    weight: "420г",
+    calories: 540,
+    protein: 30,
+    fat: 19,
+    carbs: 58,
+    allergens: ["глютен", "яйца"],
+  },
+  {
+    id: 11,
+    categoryId: 2,
+    name: "Салат с киноа и авокадо",
+    price: "450 ₽",
+    tag: "Легкое",
+    video: "/media/story-2-mobile.mp4",
+    fallbackVideo: "/media/story-2.mp4",
+    poster: "/media/story-2.jpg",
+    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
+    description: "Киноа, авокадо, огурец, томаты черри и соус из лимона и оливкового масла.",
+    weight: "260г",
+    calories: 340,
+    protein: 10,
+    fat: 16,
+    carbs: 38,
+    allergens: [],
+  },
+  {
+    id: 12,
+    categoryId: 3,
+    name: "Павлова с ягодами",
+    price: "430 ₽",
+    tag: "Новинка",
+    video: "/media/story-3-mobile.mp4",
+    fallbackVideo: "/media/story-3.mp4",
+    poster: "/media/story-3.jpg",
+    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
+    description: "Хрустящая меренга с ванильным кремом, свежими ягодами и ягодным кули.",
+    weight: "170г",
+    calories: 360,
+    protein: 5,
+    fat: 14,
+    carbs: 54,
+    allergens: ["яйца", "молочные продукты"],
+  },
+  {
+    id: 13,
+    categoryId: 4,
+    name: "Фетучини с грибами",
+    price: "520 ₽",
+    tag: "Домашняя паста",
+    video: "/media/story-2-mobile.mp4",
+    fallbackVideo: "/media/story-2.mp4",
+    poster: "/media/story-2.jpg",
+    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
+    description: "Паста в сливочно-грибном соусе с пармезаном и свежим тимьяном.",
+    weight: "330г",
+    calories: 510,
+    protein: 16,
+    fat: 22,
+    carbs: 61,
+    allergens: ["глютен", "молочные продукты"],
+  },
+  {
+    id: 14,
+    categoryId: 5,
+    name: "Стейк с перечным соусом",
+    price: "890 ₽",
+    tag: "Премиум",
+    video: "/media/story-1-mobile.mp4",
+    fallbackVideo: "/media/story-1.mp4",
+    poster: "/media/story-1.jpg",
+    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
+    description: "Сочный стейк средней прожарки с зеленой фасолью и соусом из черного перца.",
+    weight: "300г",
+    calories: 620,
+    protein: 44,
+    fat: 37,
+    carbs: 11,
+    allergens: ["молочные продукты"],
+  },
+  {
+    id: 15,
+    categoryId: 6,
+    name: "Ягодный лимонад",
+    price: "290 ₽",
+    tag: "Освежает",
+    video: "/media/story-3-mobile.mp4",
+    fallbackVideo: "/media/story-3.mp4",
+    poster: "/media/story-3.jpg",
+    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
+    description: "Лимонад с малиной, клубникой и мятой на минеральной воде.",
+    weight: "400мл",
+    calories: 150,
+    protein: 0,
+    fat: 0,
+    carbs: 36,
+    allergens: [],
+  },
 ];
 
 export default function Home() {
@@ -232,6 +343,28 @@ export default function Home() {
   const swipeStartY = useRef(0);
   const catSwipeStartX = useRef(0);
   const catContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const playbackDishIndexes = categories.flatMap((cat) =>
+    dishes
+      .map((dish, index) => ({ dish, index }))
+      .filter(({ dish }) => dish.categoryId === cat.id)
+      .map(({ index }) => index)
+  );
+
+  const getNextDishIndex = (fromIndex: number) => {
+    const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
+    if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
+    return playbackDishIndexes[(currentPlaybackIndex + 1) % playbackDishIndexes.length] ?? fromIndex;
+  };
+
+  const getPrevDishIndex = (fromIndex: number) => {
+    const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
+    if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
+    return (
+      playbackDishIndexes[(currentPlaybackIndex - 1 + playbackDishIndexes.length) % playbackDishIndexes.length] ??
+      fromIndex
+    );
+  };
 
   const currentDish = dishes[activeDishIndex];
   const categoryDishes = dishes.filter((d) => d.categoryId === currentDish.categoryId);
@@ -263,7 +396,7 @@ export default function Home() {
       setProgress(percent);
       if (percent >= 100) {
         setProgress(0);
-        setActiveDishIndex((current) => (current + 1) % dishes.length);
+        setActiveDishIndex((current) => getNextDishIndex(current));
       }
     }, 70);
     return () => window.clearInterval(timer);
@@ -285,7 +418,7 @@ export default function Home() {
 
   // Preload next dish video
   useEffect(() => {
-    const nextDish = dishes[(activeDishIndex + 1) % dishes.length];
+    const nextDish = dishes[getNextDishIndex(activeDishIndex)];
     const links = [nextDish.video, nextDish.fallbackVideo].map((href) => {
       const link = document.createElement("link");
       link.rel = "preload";
@@ -395,12 +528,12 @@ export default function Home() {
 
   const goNext = () => {
     setProgress(0);
-    setActiveDishIndex((current) => (current + 1) % dishes.length);
+    setActiveDishIndex((current) => getNextDishIndex(current));
   };
 
   const goPrev = () => {
     setProgress(0);
-    setActiveDishIndex((current) => (current - 1 + dishes.length) % dishes.length);
+    setActiveDishIndex((current) => getPrevDishIndex(current));
   };
 
   const startHoldPause = (pointerType: string) => {
@@ -558,7 +691,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Tag + Dish name + (i) button */}
+        {/* Tag + Dish name + price */}
         <div key={currentDish.id} className="mt-5 fade-in-up">
           <span className="inline-block rounded-full border border-white/20 bg-black/30 px-3 py-0.5 text-[10px] font-bold tracking-[0.22em] text-white/75 uppercase backdrop-blur-sm">
             {currentDish.tag}
@@ -567,31 +700,30 @@ export default function Home() {
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-lg sm:text-4xl">
               {currentDish.name}
             </h1>
-            <button
-              type="button"
-              onClick={() => openModal(currentDish)}
-              className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/30 bg-black/30 text-sm font-bold text-white/80 backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
-              aria-label="Подробнее о блюде"
-            >
-              i
-            </button>
+            <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[#ffd8a8] drop-shadow sm:text-3xl">
+              {currentDish.price}
+            </span>
           </div>
         </div>
       </div>
 
       {/* ─── BOTTOM: Price + CTA + Category nav ───────────────── */}
       <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-6 sm:px-7">
-        {/* Price + Add to cart */}
+        {/* CTA row */}
         <div key={`cta-${currentDish.id}`} className="mb-4 flex items-center gap-3 fade-in-up">
-          <span className="text-2xl font-bold text-[#ffd8a8] drop-shadow sm:text-3xl">
-            {currentDish.price}
-          </span>
+          <button
+            type="button"
+            onClick={() => openModal(currentDish)}
+            className="rounded-2xl border border-white/30 bg-black/30 px-4 py-3 text-xs font-bold uppercase tracking-wide text-white/85 backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
+          >
+            Подробнее
+          </button>
           <button
             type="button"
             onClick={() => addToCart(currentDish)}
             className="flex-1 rounded-2xl bg-[#ffad66] py-3 text-sm font-bold uppercase tracking-wide text-[#1a0d07] shadow-lg transition hover:bg-[#ffbd80] active:scale-[0.97]"
           >
-            В корзину
+            Выбрать
           </button>
         </div>
 
@@ -614,21 +746,21 @@ export default function Home() {
                 onClick={() => jumpToCategory(cat.id)}
                 className={`flex flex-shrink-0 snap-center w-[45%] sm:w-[38%] flex-col items-center justify-center gap-1.5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${
                   isActive
-                    ? "border-[#ffad66]/70 bg-[#ffad66]/25 text-[#ffd8a8] shadow-[0_0_30px_rgba(255,173,102,0.3)] py-5"
+                    ? "border-[#ffad66]/70 bg-[#ffad66]/25 text-[#ffd8a8] shadow-[0_0_30px_rgba(255,173,102,0.3)] py-4"
                     : "border-white/10 bg-black/40 text-white/45 py-4 opacity-60"
                 }`}
                 style={{
-                  transform: isActive ? "scale(1) translateZ(20px)" : "scale(0.8) translateZ(-60px)",
+                  transform: isActive ? "scale(1) translateZ(0)" : "scale(1) translateZ(0)",
                   transformStyle: "preserve-3d",
                 }}
               >
-                <span className={`leading-none transition-all duration-300 ${isActive ? "text-4xl" : "text-2xl"}`}>
+                <span className="text-3xl leading-none transition-all duration-300">
                   {cat.icon}
                 </span>
-                <span className={`tracking-wide transition-all duration-300 ${isActive ? "mt-2 text-base font-bold" : "mt-0.5 text-xs font-semibold"}`}>
+                <span className={`mt-1 text-sm tracking-wide transition-all duration-300 ${isActive ? "font-bold" : "font-semibold"}`}>
                   {cat.name}
                 </span>
-                <span className={`transition-all duration-300 ${isActive ? "text-[11px] text-[#ffd8a8]/50 mt-1" : "text-[9px] text-white/25"}`}>
+                <span className={`text-[10px] transition-all duration-300 ${isActive ? "mt-1 text-[#ffd8a8]/50" : "mt-1 text-white/25"}`}>
                   {count} блюда
                 </span>
               </button>
@@ -774,11 +906,11 @@ export default function Home() {
       {/* ─── PRODUCT DETAIL MODAL ───────────────────────────── */}
       {modal.isOpen && modal.dish && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-lg max-h-[90vh] animate-in fade-in rounded-3xl bg-[#180e08] p-6 overflow-y-auto"
+            className="w-full max-w-lg max-h-[86vh] animate-in fade-in rounded-3xl bg-[#180e08] p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-3">
@@ -833,7 +965,7 @@ export default function Home() {
                 onClick={() => { addToCart(modal.dish!); closeModal(); }}
                 className="w-full rounded-2xl bg-[#ffad66] py-4 text-base font-bold uppercase tracking-wide text-[#1a0d07] transition hover:bg-[#ffbd80] active:scale-[0.98]"
               >
-                В корзину — {modal.dish.price}
+                Выбрать — {modal.dish.price}
               </button>
             </div>
           </div>
