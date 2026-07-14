@@ -342,6 +342,7 @@ export default function Home() {
   const swipeStartX = useRef(0);
   const swipeStartY = useRef(0);
   const catContainerRef = useRef<HTMLDivElement | null>(null);
+  const loopedCategories = [...categories, ...categories, ...categories];
 
   const playbackDishIndexes = categories.flatMap((cat) =>
     dishes
@@ -445,11 +446,29 @@ export default function Home() {
     const container = catContainerRef.current;
     if (!container) return;
     const activeCatId = currentDish.categoryId;
-    const activeCard = container.querySelector<HTMLButtonElement>(`[data-cat-id="${activeCatId}"]`);
-    if (activeCard) {
-      activeCard.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
+    const activeCards = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(`[data-cat-id="${activeCatId}"]`)
+    );
+    if (activeCards.length === 0) return;
+
+    const containerCenter = container.scrollLeft + container.clientWidth / 2;
+    const targetCard = activeCards.reduce((closest, card) => {
+      const closestCenter = closest.offsetLeft + closest.offsetWidth / 2;
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const closestDistance = Math.abs(closestCenter - containerCenter);
+      const cardDistance = Math.abs(cardCenter - containerCenter);
+      return cardDistance < closestDistance ? card : closest;
+    });
+
+    targetCard.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [currentDish.categoryId]);
+
+  // Start in the middle copy so users can swipe both directions endlessly.
+  useEffect(() => {
+    const container = catContainerRef.current;
+    if (!container) return;
+    container.scrollLeft = container.scrollWidth / 3;
+  }, []);
 
   // Secret admin shortcut Ctrl+Alt+T
   useEffect(() => {
@@ -598,6 +617,18 @@ export default function Home() {
     e.stopPropagation();
   };
 
+  const handleCategoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const segmentWidth = container.scrollWidth / 3;
+    if (segmentWidth === 0) return;
+
+    if (container.scrollLeft < segmentWidth * 0.2) {
+      container.scrollLeft += segmentWidth;
+    } else if (container.scrollLeft > segmentWidth * 1.8) {
+      container.scrollLeft -= segmentWidth;
+    }
+  };
+
   const jumpToCategory = (categoryId: number) => {
     const idx = dishes.findIndex((d) => d.categoryId === categoryId);
     if (idx !== -1) {
@@ -722,13 +753,14 @@ export default function Home() {
           style={{ perspective: "1200px" }}
           onTouchStart={handleCatSwipeStart}
           onTouchEnd={handleCatSwipeEnd}
+          onScroll={handleCategoryScroll}
         >
-          {categories.map((cat) => {
+          {loopedCategories.map((cat, index) => {
             const isActive = cat.id === currentDish.categoryId;
             const count = dishes.filter((d) => d.categoryId === cat.id).length;
             return (
               <button
-                key={cat.id}
+                key={`${cat.id}-${index}`}
                 data-cat-id={cat.id}
                 type="button"
                 onClick={() => jumpToCategory(cat.id)}
