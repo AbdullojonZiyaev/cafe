@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #130c08;
-  --foreground: #fff7ed;
+  --palette-yellow: rgb(255, 255, 0);
+  --palette-black: rgb(0, 0, 0);
+  --palette-teal: rgb(60, 207, 187);
+  --palette-charcoal: rgb(63, 68, 68);
+  --palette-yellow-soft: rgb(255, 245, 0);
+  --palette-gray-1: rgb(133, 133, 133);
+  --palette-gray-2: rgb(134, 134, 134);
+  --palette-white: rgb(255, 255, 255);
+  --background: var(--palette-black);
+  --foreground: var(--palette-white);
 }
 
 @theme inline {

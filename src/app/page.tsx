@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Dish = {
@@ -665,7 +666,7 @@ export default function Home() {
 
   return (
     <main
-      className="relative h-dvh w-full overflow-hidden bg-[#130c08] text-[#fff7ed]"
+      className="relative h-dvh w-full overflow-hidden bg-[var(--palette-black)] text-[var(--palette-white)]"
       onPointerDown={(event) => startHoldPause(event.pointerType)}
       onPointerUp={stopHoldPause}
       onPointerCancel={stopHoldPause}
@@ -674,15 +675,28 @@ export default function Home() {
       onTouchEnd={handleSwipeEnd}
     >
       {isWelcomeOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md animate-in fade-in rounded-3xl border border-[#C0F336]/40 bg-[#180e08] px-6 py-7 text-center text-[#fff7ed] shadow-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#C0F336]/80">Welcome</p>
-            <h2 className="mt-3 text-2xl font-bold leading-tight">Thank you and welcome to the "reatraun name"</h2>
-            <p className="mt-3 text-sm text-[#C0F336]/75">Tap continue to start browsing the menu.</p>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(0,0,0,0.74)] p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md animate-in fade-in rounded-3xl border border-[rgba(255,255,0,0.45)] bg-[rgba(63,68,68,0.92)] px-6 py-7 text-center text-[var(--palette-white)] shadow-2xl">
+            <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,0,0.5)] bg-[rgba(0,0,0,0.45)] px-3 py-1.5">
+              <Image
+                src="/logo.svg"
+                alt="Restaurant logo"
+                width={24}
+                height={24}
+                priority
+                className="h-6 w-6 rounded-full bg-[var(--palette-white)]"
+              />
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--palette-yellow)]">
+                Coffee Moose
+              </span>
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgba(255,255,0,0.85)]">Welcome</p>
+            <h2 className="mt-3 text-2xl font-bold leading-tight">Thank you and welcome to the &quot;Coffee Moose&quot;</h2>
+            <p className="mt-3 text-sm text-[rgba(255,245,0,0.8)]">Tap continue to start browsing the menu.</p>
             <button
               type="button"
               onClick={() => setIsWelcomeOpen(false)}
-              className="mt-6 w-full rounded-2xl bg-[#C0F336] py-3 text-sm font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
+              className="mt-6 w-full rounded-2xl bg-[var(--palette-yellow)] py-3 text-sm font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
             >
               Continue
             </button>
@@ -709,7 +723,20 @@ export default function Home() {
       {/* Color tint overlay */}
       <div className={`absolute inset-0 ${currentDish.tint}`} />
       {/* Gradient: dark top for readability → clear middle → dark bottom */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent via-45% to-black/85" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0.78)] via-[rgba(63,68,68,0.22)] via-45% to-[rgba(0,0,0,0.9)]" />
+
+      {/* Persistent logo watermark */}
+      <div className="pointer-events-none absolute right-4 top-16 z-25 sm:right-7 sm:top-20">
+        <div className="rounded-full border border-[rgba(255,255,0,0.35)] bg-[rgba(0,0,0,0.28)] p-1.5 backdrop-blur-[1.5px]">
+          <Image
+            src="/logo.svg"
+            alt="Coffee Moose watermark"
+            width={64}
+            height={64}
+            className="h-9 w-9 rounded-full opacity-[0.85] saturate-0 sm:h-18 sm:w-18"
+          />
+        </div>
+      </div>
 
       {/* Invisible tap zones — middle only so they don't block top/bottom UI */}
       <button
@@ -734,10 +761,10 @@ export default function Home() {
           {categoryDishes.map((d, idx) => (
             <span
               key={d.id}
-              className="relative h-[3px] flex-1 overflow-hidden rounded-full bg-white/25"
+              className="relative h-[3px] flex-1 overflow-hidden rounded-full bg-[rgba(134,134,134,0.4)]"
             >
               <span
-                className={`absolute inset-y-0 left-0 rounded-full bg-white/90 ${
+                className={`absolute inset-y-0 left-0 rounded-full bg-[var(--palette-yellow)] ${
                   idx === dishIndexInCategory ? "story-progress-active" : ""
                 }`}
                 style={{
@@ -755,14 +782,14 @@ export default function Home() {
 
         {/* Tag + Dish name + price */}
         <div key={currentDish.id} className="mt-5 fade-in-up">
-          <span className="inline-block rounded-full border border-white/20 bg-black/30 px-3 py-0.5 text-[10px] font-bold tracking-[0.22em] text-white/75 uppercase backdrop-blur-sm">
+          <span className="inline-block rounded-full border border-[rgba(255,255,0,0.35)] bg-[rgba(0,0,0,0.45)] px-3 py-0.5 text-[10px] font-bold tracking-[0.22em] text-[rgba(255,255,255,0.82)] uppercase backdrop-blur-sm">
             {currentDish.tag}
           </span>
-          <div className="mt-2 flex items-start flex-col  gap-3">
+          <div className="mt-2 flex flex-col gap-3">
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-white drop-shadow-lg sm:text-4xl">
               {currentDish.name}
             </h1>
-            <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[#C0F336] drop-shadow sm:text-3xl">
+            <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[var(--palette-yellow-soft)] drop-shadow sm:text-3xl">
               {currentDish.price}
             </span>
           </div>
@@ -776,14 +803,14 @@ export default function Home() {
           <button
             type="button"
             onClick={() => openModal(currentDish)}
-            className="rounded-2xl border border-white/30 bg-black/30 px-4 py-3 text-xs font-bold uppercase tracking-wide text-white/85 backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
+            className="rounded-2xl border border-[rgba(60,207,187,0.55)] bg-[rgba(63,68,68,0.5)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--palette-white)] backdrop-blur-sm transition hover:bg-[rgba(60,207,187,0.25)] active:scale-95"
           >
             Подробнее
           </button>
           <button
             type="button"
             onClick={() => addToCart(currentDish)}
-            className="flex-1 rounded-2xl bg-[#C0F336] py-3 text-sm font-bold uppercase tracking-wide text-[#122000] shadow-lg transition hover:bg-[#d4f85f] active:scale-[0.97]"
+            className="flex-1 rounded-2xl bg-[var(--palette-yellow)] py-3 text-sm font-bold uppercase tracking-wide text-[var(--palette-black)] shadow-lg transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.97]"
           >
             Выбрать
           </button>
@@ -809,8 +836,8 @@ export default function Home() {
                 onClick={() => jumpToCategory(cat.id)}
                 className={`flex flex-shrink-0 snap-center w-[45%] sm:w-[38%] flex-col items-center justify-center gap-1.5 rounded-2xl border backdrop-blur-md transition-all duration-300 ${
                   isActive
-                    ? "border-[#C0F336]/70 bg-[#C0F336]/20 text-[#C0F336] shadow-[0_0_30px_rgba(192,243,54,0.35)] py-4"
-                    : "border-white/10 bg-black/40 text-white/45 py-4 opacity-60"
+                    ? "border-[rgba(255,255,0,0.75)] bg-[rgba(255,255,0,0.18)] text-[var(--palette-yellow)] shadow-[0_0_30px_rgba(255,255,0,0.3)] py-4"
+                    : "border-[rgba(134,134,134,0.45)] bg-[rgba(63,68,68,0.55)] text-[rgba(255,255,255,0.62)] py-4 opacity-60"
                 }`}
                 style={{
                   transform: isActive ? "scale(1) translateZ(0)" : "scale(1) translateZ(0)",
@@ -823,7 +850,7 @@ export default function Home() {
                 <span className={`mt-1 text-sm tracking-wide transition-all duration-300 ${isActive ? "font-bold" : "font-semibold"}`}>
                   {cat.name}
                 </span>
-                <span className={`text-[10px] transition-all duration-300 ${isActive ? "mt-1 text-[#C0F336]/60" : "mt-1 text-white/25"}`}>
+                <span className={`text-[10px] transition-all duration-300 ${isActive ? "mt-1 text-[rgba(255,245,0,0.72)]" : "mt-1 text-[rgba(134,134,134,0.95)]"}`}>
                   {count} блюда
                 </span>
               </button>
@@ -836,7 +863,7 @@ export default function Home() {
       <button
         type="button"
         onClick={() => setIsCartOpen(true)}
-        className="fixed bottom-6 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#C0F336] shadow-2xl transition hover:bg-[#d4f85f] active:scale-95"
+        className="fixed bottom-6 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--palette-yellow)] shadow-2xl transition hover:bg-[var(--palette-yellow-soft)] active:scale-95"
         aria-label="Открыть корзину"
       >
         <svg
@@ -844,7 +871,7 @@ export default function Home() {
           height="22"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#1a0d07"
+          stroke="rgb(0, 0, 0)"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -854,7 +881,7 @@ export default function Home() {
           <path d="M16 10a4 4 0 01-8 0" />
         </svg>
         {cartSummary.totalItems > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--palette-teal)] px-1 text-[11px] font-bold text-[var(--palette-black)]">
             {cartSummary.totalItems}
           </span>
         )}
@@ -866,25 +893,25 @@ export default function Home() {
           className="fixed inset-0 z-40 flex items-end"
           onClick={() => setIsCartOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-sm" />
           <div
-            className="relative w-full animate-in slide-in-from-bottom rounded-t-3xl bg-[#180e08] px-5 pb-8 pt-5 max-h-[72vh] overflow-y-auto"
+            className="relative w-full animate-in slide-in-from-bottom rounded-t-3xl bg-[rgba(63,68,68,0.98)] px-5 pb-8 pt-5 max-h-[72vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[rgba(134,134,134,0.75)]" />
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#fff7ed]">Ваш заказ</h2>
+              <h2 className="text-xl font-bold text-[var(--palette-white)]">Ваш заказ</h2>
               <button
                 type="button"
                 onClick={() => setIsCartOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm text-[#fff7ed] hover:bg-white/20"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(134,134,134,0.24)] text-sm text-[var(--palette-white)] hover:bg-[rgba(134,134,134,0.42)]"
               >
                 ✕
               </button>
             </div>
 
             {cartSummary.items.length === 0 ? (
-              <p className="py-10 text-center text-sm text-[#C0F336]/60">
+              <p className="py-10 text-center text-sm text-[rgba(255,245,0,0.72)]">
                 Корзина пуста — добавьте блюда нажатием «В корзину»
               </p>
             ) : (
@@ -893,15 +920,15 @@ export default function Home() {
                   {cartSummary.items.map((item) => (
                     <div key={item.key} className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#fff7ed]">{item.name}</p>
-                        <p className="text-xs text-[#C0F336]">{item.price} ₽ × {item.quantity}</p>
+                        <p className="truncate text-sm font-semibold text-[var(--palette-white)]">{item.name}</p>
+                        <p className="text-xs text-[var(--palette-yellow)]">{item.price} ₽ × {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[#C0F336]">{item.total} ₽</span>
+                        <span className="text-sm font-bold text-[var(--palette-yellow)]">{item.total} ₽</span>
                         <button
                           type="button"
                           onClick={() => removeFromCart(item.key)}
-                          className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs text-white/70 hover:bg-white/20"
+                          className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(134,134,134,0.24)] text-xs text-[rgba(255,255,255,0.8)] hover:bg-[rgba(134,134,134,0.42)]"
                           aria-label={`Удалить ${item.name}`}
                         >
                           ✕
@@ -910,14 +937,14 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-                  <p className="text-base font-bold text-[#fff7ed]">Итого</p>
-                  <p className="text-2xl font-bold text-[#C0F336]">{cartSummary.totalPrice} ₽</p>
+                <div className="mt-5 flex items-center justify-between border-t border-[rgba(134,134,134,0.34)] pt-4">
+                  <p className="text-base font-bold text-[var(--palette-white)]">Итого</p>
+                  <p className="text-2xl font-bold text-[var(--palette-yellow)]">{cartSummary.totalPrice} ₽</p>
                 </div>
                 <button
                   type="button"
                   onClick={submitOrder}
-                  className="mt-5 w-full rounded-2xl bg-[#C0F336] py-4 text-base font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
+                  className="mt-5 w-full rounded-2xl bg-[var(--palette-yellow)] py-4 text-base font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
                 >
                   Заказать
                 </button>
@@ -929,35 +956,35 @@ export default function Home() {
 
       {/* ─── ADMIN PANEL ────────────────────────────────────── */}
       {showAdminPanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur">
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-[#180e08] p-6 text-[#fff7ed]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.65)] backdrop-blur">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-[rgba(63,68,68,0.98)] p-6 text-[var(--palette-white)]">
             <h2 className="mb-5 text-xl font-bold">Админ-панель</h2>
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => { enterKioskMode(); setShowAdminPanel(false); }}
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#C0F336]/95 hover:bg-white/20"
+                className="w-full rounded-xl border border-[rgba(60,207,187,0.52)] bg-[rgba(60,207,187,0.12)] px-4 py-3 text-sm font-semibold text-[var(--palette-teal)] hover:bg-[rgba(60,207,187,0.25)]"
               >
                 Включить Киоск-режим
               </button>
               <button
                 type="button"
                 onClick={() => { exitKioskMode(); setShowAdminPanel(false); }}
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-[#C0F336]/95 hover:bg-white/20"
+                className="w-full rounded-xl border border-[rgba(60,207,187,0.52)] bg-[rgba(60,207,187,0.12)] px-4 py-3 text-sm font-semibold text-[var(--palette-teal)] hover:bg-[rgba(60,207,187,0.25)]"
               >
                 Выйти из Fullscreen
               </button>
               <button
                 type="button"
                 onClick={toggleWorkMode}
-                className="w-full rounded-xl border border-[#C0F336]/30 bg-[#C0F336]/15 px-4 py-3 text-sm font-semibold text-[#C0F336] hover:bg-[#C0F336]/25"
+                className="w-full rounded-xl border border-[rgba(255,255,0,0.45)] bg-[rgba(255,255,0,0.18)] px-4 py-3 text-sm font-semibold text-[var(--palette-yellow)] hover:bg-[rgba(255,255,0,0.27)]"
               >
                 Режим: {workMode === "menu" ? "Меню (официант)" : "Интерактивный стол"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAdminPanel(false)}
-                className="w-full rounded-xl bg-white/5 px-4 py-3 text-sm font-semibold text-[#C0F336]/70 hover:bg-white/10"
+                className="w-full rounded-xl bg-[rgba(134,134,134,0.2)] px-4 py-3 text-sm font-semibold text-[rgba(255,245,0,0.75)] hover:bg-[rgba(134,134,134,0.35)]"
               >
                 Закрыть
               </button>
@@ -969,36 +996,36 @@ export default function Home() {
       {/* ─── PRODUCT DETAIL MODAL ───────────────────────────── */}
       {modal.isOpen && modal.dish && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.62)] p-4 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="w-full max-w-lg max-h-[86vh] animate-in fade-in rounded-3xl bg-[#180e08] p-6 overflow-y-auto"
+            className="w-full max-w-lg max-h-[86vh] animate-in fade-in rounded-3xl bg-[rgba(63,68,68,0.98)] p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold text-[#fff7ed]">{modal.dish.name}</h2>
+                <h2 className="text-2xl font-bold text-[var(--palette-white)]">{modal.dish.name}</h2>
                 {modal.dish.weight && (
-                  <p className="mt-1 text-sm text-[#C0F336]">{modal.dish.weight}</p>
+                  <p className="mt-1 text-sm text-[var(--palette-yellow)]">{modal.dish.weight}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/10 text-sm text-[#fff7ed] hover:bg-white/20"
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[rgba(134,134,134,0.24)] text-sm text-[var(--palette-white)] hover:bg-[rgba(134,134,134,0.42)]"
               >
                 ✕
               </button>
             </div>
             <div className="space-y-5">
               {modal.dish.description && (
-                <p className="text-sm leading-relaxed text-[#C0F336]/90">
+                <p className="text-sm leading-relaxed text-[rgba(255,245,0,0.92)]">
                   {modal.dish.description}
                 </p>
               )}
               {(modal.dish.calories || modal.dish.protein || modal.dish.fat || modal.dish.carbs) && (
-                <div className="grid grid-cols-4 gap-2 rounded-2xl bg-white/5 p-4">
+                <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[rgba(134,134,134,0.18)] p-4">
                   {[
                     { label: "Ккал", value: modal.dish.calories },
                     { label: "Белки", value: modal.dish.protein ? `${modal.dish.protein}г` : null },
@@ -1007,17 +1034,17 @@ export default function Home() {
                   ].map(({ label, value }) =>
                     value ? (
                       <div key={label} className="text-center">
-                        <p className="text-base font-bold text-[#fff7ed]">{value}</p>
-                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[#C0F336]/70">{label}</p>
+                        <p className="text-base font-bold text-[var(--palette-white)]">{value}</p>
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[rgba(60,207,187,0.95)]">{label}</p>
                       </div>
                     ) : null
                   )}
                 </div>
               )}
               {modal.dish.allergens && modal.dish.allergens.length > 0 && (
-                <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2">
+                <div className="flex items-start gap-2 rounded-xl border border-[rgba(255,255,0,0.45)] bg-[rgba(255,255,0,0.12)] px-3 py-2">
                   <span className="mt-0.5 text-sm">⚠️</span>
-                  <p className="text-xs text-[#ffcdd2]">
+                  <p className="text-xs text-[var(--palette-white)]">
                     <span className="font-semibold">Аллергены: </span>
                     {modal.dish.allergens.join(", ")}
                   </p>
@@ -1026,7 +1053,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => { addToCart(modal.dish!); closeModal(); }}
-                className="w-full rounded-2xl bg-[#C0F336] py-4 text-base font-bold uppercase tracking-wide text-[#122000] transition hover:bg-[#d4f85f] active:scale-[0.98]"
+                className="w-full rounded-2xl bg-[var(--palette-yellow)] py-4 text-base font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
               >
                 Выбрать — {modal.dish.price}
               </button>
@@ -1037,8 +1064,8 @@ export default function Home() {
 
       {/* ─── NOTIFICATION TOAST ─────────────────────────────── */}
       {notification.isVisible && (
-        <div className="fixed bottom-24 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom rounded-2xl bg-[#1a0d07]/95 px-5 py-4 shadow-2xl backdrop-blur-md sm:left-auto sm:right-6 sm:w-80">
-          <p className="text-sm font-semibold text-[#C0F336]">{notification.message}</p>
+        <div className="fixed bottom-24 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom rounded-2xl bg-[rgba(63,68,68,0.97)] px-5 py-4 shadow-2xl backdrop-blur-md sm:left-auto sm:right-6 sm:w-80">
+          <p className="text-sm font-semibold text-[var(--palette-yellow)]">{notification.message}</p>
         </div>
       )}
     </main>
