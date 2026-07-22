@@ -1,18 +1,17 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent, type UIEvent } from "react";
 
 type Dish = {
-  id: number;
-  categoryId: number;
+  id: string;
+  categoryId: string;
   name: string;
-  price: string;
+  price: number;
   tag: string;
-  video: string;
-  fallbackVideo: string;
-  poster: string;
-  tint: string;
+  video?: string;
+  fallbackVideo?: string;
+  poster?: string;
+  tintBackground?: string;
   description?: string;
   weight?: string;
   calories?: number;
@@ -23,9 +22,59 @@ type Dish = {
 };
 
 type Category = {
-  id: number;
+  id: string;
   name: string;
   icon: string;
+  sortOrder: number;
+  dishCount: number;
+};
+
+type Restaurant = {
+  slug: string;
+  name: string;
+  welcomeText: string;
+  themeColor?: string;
+  workMode: WorkMode;
+  currency: string;
+  logoUrl?: string;
+};
+
+type ApiMenuResponse = {
+  restaurant: {
+    slug: string;
+    name: string;
+    welcome_text?: string;
+    theme_color?: string;
+    work_mode?: WorkMode;
+    currency?: string;
+    logo_url?: string | null;
+  };
+  categories: Array<{
+    id: string;
+    name: string;
+    icon?: string;
+    sort_order?: number;
+    dish_count?: number;
+  }>;
+  dishes: Array<{
+    id: string;
+    category_id: string;
+    name: string;
+    price: number;
+    tag?: string;
+    description?: string;
+    weight?: string;
+    calories?: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    allergens?: string[];
+    tint?: string;
+    video_url?: string;
+    fallback_video_url?: string;
+    poster_url?: string;
+    sort_order?: number;
+  }>;
 };
 
 type CartItem = {
@@ -42,300 +91,46 @@ type ModalState = {
 };
 
 const DISH_DURATION_MS = 6500;
+const DEFAULT_MENU_SLUG = "demo";
+const MEDIA_BASE_URL = "https://wc.nets.tj";
+const PLACEHOLDER_VIDEO_URL = "/public]/media/story-1-mobile.mp4";
 
-const categories: Category[] = [
-  { id: 1, name: "Супы", icon: "🍲" },
-  { id: 2, name: "Салаты", icon: "🥗" },
-  { id: 3, name: "Десерты", icon: "🍰" },
-  { id: 4, name: "Паста", icon: "🍝" },
-  { id: 5, name: "Гриль", icon: "🔥" },
-  { id: 6, name: "Напитки", icon: "🍹" },
-];
+const normalizeAssetUrl = (url?: string | null) => {
+  if (!url) return undefined;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return `${MEDIA_BASE_URL}${url}`;
+  return `${MEDIA_BASE_URL}/${url}`;
+};
 
-const dishes: Dish[] = [
-  {
-    id: 1,
-    categoryId: 1,
-    name: "Трюфельный бургер",
-    price: "690 ₽",
-    tag: "Выбор шефа",
-    video: "/media/story-1-mobile.mp4",
-    fallbackVideo: "/media/story-1.mp4",
-    poster: "/media/story-1.jpg",
-    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
-    description: "Премиальный бургер с двойной говяжьей котлетой, трюфельным маслом, выдержанным чеддером и карамелизированным луком. Подается с картофелем фри.",
-    weight: "350г",
-    calories: 580,
-    protein: 35,
-    fat: 28,
-    carbs: 42,
-    allergens: ["глютен", "молочные продукты", "сезам"],
-  },
-  {
-    id: 2,
-    categoryId: 1,
-    name: "Тако с креветками",
-    price: "590 ₽",
-    tag: "Острое",
-    video: "/media/story-1-mobile.mp4",
-    fallbackVideo: "/media/story-1.mp4",
-    poster: "/media/story-1.jpg",
-    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
-    description: "Хрустящие тако с крупными креветками, цитрусовым салатом, сливочным кремом из авокадо и жареной кукурузой.",
-    weight: "280г",
-    calories: 420,
-    protein: 28,
-    fat: 18,
-    carbs: 35,
-    allergens: ["морепродукты", "молочные продукты"],
-  },
-  {
-    id: 3,
-    categoryId: 1,
-    name: "Цитрусовый спритц",
-    price: "320 ₽",
-    tag: "Свежесть",
-    video: "/media/story-1-mobile.mp4",
-    fallbackVideo: "/media/story-1.mp4",
-    poster: "/media/story-1.jpg",
-    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
-    description: "Освежающий коктейль с красным апельсином, свежей мятой и игристым тоником.",
-    weight: "350мл",
-    calories: 120,
-    protein: 0,
-    fat: 0,
-    carbs: 28,
-    allergens: [],
-  },
-  {
-    id: 4,
-    categoryId: 2,
-    name: "Хрустящие чили-байтсы",
-    price: "470 ₽",
-    tag: "Закуска",
-    video: "/media/story-2-mobile.mp4",
-    fallbackVideo: "/media/story-2.mp4",
-    poster: "/media/story-2.jpg",
-    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
-    description: "Небольшие кусочки курицы в хрустящей пахте с острым айоли и лаймовой цедрой.",
-    weight: "180г",
-    calories: 380,
-    protein: 24,
-    fat: 18,
-    carbs: 28,
-    allergens: ["яйца", "молочные продукты"],
-  },
-  {
-    id: 5,
-    categoryId: 2,
-    name: "Фри по-стрит",
-    price: "390 ₽",
-    tag: "На компанию",
-    video: "/media/story-2-mobile.mp4",
-    fallbackVideo: "/media/story-2.mp4",
-    poster: "/media/story-2.jpg",
-    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
-    description: "Хрустящий картофель фри с копченой паприкой, расплавленным чеддером и чесночным майонезом.",
-    weight: "250г",
-    calories: 520,
-    protein: 8,
-    fat: 26,
-    carbs: 62,
-    allergens: ["молочные продукты"],
-  },
-  {
-    id: 6,
-    categoryId: 2,
-    name: "Крылья лимон-перец",
-    price: "560 ₽",
-    tag: "Тренд",
-    video: "/media/story-2-mobile.mp4",
-    fallbackVideo: "/media/story-2.mp4",
-    poster: "/media/story-2.jpg",
-    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
-    description: "Куриные крылья на гриле с глазурью из черного перца и лимона, свежими травами.",
-    weight: "320г",
-    calories: 480,
-    protein: 42,
-    fat: 22,
-    carbs: 12,
-    allergens: [],
-  },
-  {
-    id: 7,
-    categoryId: 3,
-    name: "Шоколадный мусс",
-    price: "410 ₽",
-    tag: "Десерт",
-    video: "/media/story-3-mobile.mp4",
-    fallbackVideo: "/media/story-3.mp4",
-    poster: "/media/story-3.jpg",
-    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
-    description: "Нежный мусс из темного шоколада с морской солью и ягодной пудрой. Подается со сливками.",
-    weight: "150г",
-    calories: 320,
-    protein: 4,
-    fat: 18,
-    carbs: 38,
-    allergens: ["молочные продукты", "орехи"],
-  },
-  {
-    id: 8,
-    categoryId: 3,
-    name: "Медовый цитрус тарт",
-    price: "360 ₽",
-    tag: "Выпечка",
-    video: "/media/story-3-mobile.mp4",
-    fallbackVideo: "/media/story-3.mp4",
-    poster: "/media/story-3.jpg",
-    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
-    description: "Хрустящий слоеный тарт с апельсиновым кремом и медовой карамельной корочкой.",
-    weight: "120г",
-    calories: 380,
-    protein: 3,
-    fat: 16,
-    carbs: 52,
-    allergens: ["глютен", "яйца", "молочные продукты"],
-  },
-  {
-    id: 9,
-    categoryId: 3,
-    name: "Ананасовый спритц",
-    price: "300 ₽",
-    tag: "Напиток",
-    video: "/media/story-3-mobile.mp4",
-    fallbackVideo: "/media/story-3.mp4",
-    poster: "/media/story-3.jpg",
-    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
-    description: "Освежающий коктейль с охлажденным ананасом, сиропом из базилика и игристым тоником.",
-    weight: "350мл",
-    calories: 140,
-    protein: 0,
-    fat: 0,
-    carbs: 32,
-    allergens: [],
-  },
-  {
-    id: 10,
-    categoryId: 1,
-    name: "Рамен с томленой говядиной",
-    price: "640 ₽",
-    tag: "Хит",
-    video: "/media/story-1-mobile.mp4",
-    fallbackVideo: "/media/story-1.mp4",
-    poster: "/media/story-1.jpg",
-    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
-    description: "Насыщенный бульон, томленая говядина, лапша, маринованное яйцо и зеленый лук.",
-    weight: "420г",
-    calories: 540,
-    protein: 30,
-    fat: 19,
-    carbs: 58,
-    allergens: ["глютен", "яйца"],
-  },
-  {
-    id: 11,
-    categoryId: 2,
-    name: "Салат с киноа и авокадо",
-    price: "450 ₽",
-    tag: "Легкое",
-    video: "/media/story-2-mobile.mp4",
-    fallbackVideo: "/media/story-2.mp4",
-    poster: "/media/story-2.jpg",
-    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
-    description: "Киноа, авокадо, огурец, томаты черри и соус из лимона и оливкового масла.",
-    weight: "260г",
-    calories: 340,
-    protein: 10,
-    fat: 16,
-    carbs: 38,
-    allergens: [],
-  },
-  {
-    id: 12,
-    categoryId: 3,
-    name: "Павлова с ягодами",
-    price: "430 ₽",
-    tag: "Новинка",
-    video: "/media/story-3-mobile.mp4",
-    fallbackVideo: "/media/story-3.mp4",
-    poster: "/media/story-3.jpg",
-    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
-    description: "Хрустящая меренга с ванильным кремом, свежими ягодами и ягодным кули.",
-    weight: "170г",
-    calories: 360,
-    protein: 5,
-    fat: 14,
-    carbs: 54,
-    allergens: ["яйца", "молочные продукты"],
-  },
-  {
-    id: 13,
-    categoryId: 4,
-    name: "Фетучини с грибами",
-    price: "520 ₽",
-    tag: "Домашняя паста",
-    video: "/media/story-2-mobile.mp4",
-    fallbackVideo: "/media/story-2.mp4",
-    poster: "/media/story-2.jpg",
-    tint: "bg-[radial-gradient(circle_at_22%_12%,rgba(244,114,33,0.35),transparent_33%),radial-gradient(circle_at_82%_78%,rgba(255,193,123,0.26),transparent_30%)]",
-    description: "Паста в сливочно-грибном соусе с пармезаном и свежим тимьяном.",
-    weight: "330г",
-    calories: 510,
-    protein: 16,
-    fat: 22,
-    carbs: 61,
-    allergens: ["глютен", "молочные продукты"],
-  },
-  {
-    id: 14,
-    categoryId: 5,
-    name: "Стейк с перечным соусом",
-    price: "890 ₽",
-    tag: "Премиум",
-    video: "/media/story-1-mobile.mp4",
-    fallbackVideo: "/media/story-1.mp4",
-    poster: "/media/story-1.jpg",
-    tint: "bg-[radial-gradient(circle_at_18%_20%,rgba(255,141,66,0.42),transparent_35%),radial-gradient(circle_at_80%_85%,rgba(255,226,157,0.24),transparent_30%)]",
-    description: "Сочный стейк средней прожарки с зеленой фасолью и соусом из черного перца.",
-    weight: "300г",
-    calories: 620,
-    protein: 44,
-    fat: 37,
-    carbs: 11,
-    allergens: ["молочные продукты"],
-  },
-  {
-    id: 15,
-    categoryId: 6,
-    name: "Ягодный лимонад",
-    price: "290 ₽",
-    tag: "Освежает",
-    video: "/media/story-3-mobile.mp4",
-    fallbackVideo: "/media/story-3.mp4",
-    poster: "/media/story-3.jpg",
-    tint: "bg-[radial-gradient(circle_at_20%_16%,rgba(255,168,76,0.35),transparent_32%),radial-gradient(circle_at_76%_80%,rgba(247,215,170,0.22),transparent_28%)]",
-    description: "Лимонад с малиной, клубникой и мятой на минеральной воде.",
-    weight: "400мл",
-    calories: 150,
-    protein: 0,
-    fat: 0,
-    carbs: 36,
-    allergens: [],
-  },
-];
+const parseTintBackground = (tint?: string) => {
+  if (!tint) return undefined;
+  const bracketMatch = tint.match(/^bg-\[(.*)\]$/);
+  return (bracketMatch?.[1] || tint).replaceAll("_", " ");
+};
+
+const normalizeMenuPrice = (rawPrice: number) => {
+  if (rawPrice >= 1000) return rawPrice / 100;
+  return rawPrice;
+};
 
 export default function Home() {
   const [activeDishIndex, setActiveDishIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [dishes, setDishes] = useState<Dish[]>([]);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [modal, setModal] = useState<ModalState>({ isOpen: false, dish: null });
   const [notification, setNotification] = useState<{ isVisible: boolean; message: string }>({ isVisible: false, message: "" });
   const [workMode, setWorkMode] = useState<WorkMode>("menu");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [videoSource, setVideoSource] = useState<"primary" | "fallback">("primary");
+  const [isVideoUnavailable, setIsVideoUnavailable] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isHoldingRef = useRef(false);
@@ -347,32 +142,138 @@ export default function Home() {
   const isWrappingCategoriesRef = useRef(false);
   const categorySnapRestoreRef = useRef<number | null>(null);
   const loopedCategories = [...categories, ...categories, ...categories];
+  const currentDish = dishes[activeDishIndex];
 
-  const playbackDishIndexes = categories.flatMap((cat) =>
-    dishes
-      .map((dish, index) => ({ dish, index }))
-      .filter(({ dish }) => dish.categoryId === cat.id)
-      .map(({ index }) => index)
+  const selectedVideoUrl =
+    videoSource === "primary"
+      ? currentDish?.video || currentDish?.fallbackVideo
+      : currentDish?.fallbackVideo;
+  const activeVideoUrl = selectedVideoUrl || PLACEHOLDER_VIDEO_URL;
+  const showVideoUnavailable = !selectedVideoUrl || isVideoUnavailable;
+
+  const currency = restaurant?.currency || "сомони";
+  const restaurantName = restaurant?.name || "Restaurant";
+  const welcomeText = restaurant?.welcomeText || "Welcome";
+  const logoSrc = restaurant?.logoUrl || "/logo.svg";
+
+  const formatPrice = (price: number) => `${new Intl.NumberFormat("ru-RU").format(price)} ${currency}`;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMenu = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const slug = process.env.NEXT_PUBLIC_MENU_SLUG || DEFAULT_MENU_SLUG;
+        const response = await fetch(`/api/menu?slug=${encodeURIComponent(slug)}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load menu: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as ApiMenuResponse;
+        if (cancelled) return;
+
+        const mappedRestaurant: Restaurant = {
+          slug: payload.restaurant.slug,
+          name: payload.restaurant.name,
+          welcomeText: payload.restaurant.welcome_text || "Welcome",
+          themeColor: payload.restaurant.theme_color,
+          workMode: payload.restaurant.work_mode || "menu",
+          currency: payload.restaurant.currency || "сомони",
+          logoUrl: normalizeAssetUrl(payload.restaurant.logo_url || undefined),
+        };
+
+        const mappedCategories = [...payload.categories]
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((category) => ({
+            id: category.id,
+            name: category.name,
+            icon: category.icon || "🍽️",
+            sortOrder: category.sort_order || 0,
+            dishCount: category.dish_count || 0,
+          }));
+
+        const mappedDishes = [...payload.dishes]
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((dish) => ({
+            id: dish.id,
+            categoryId: dish.category_id,
+            name: dish.name,
+            price: normalizeMenuPrice(dish.price),
+            tag: dish.tag || "Рекомендуем",
+            video: normalizeAssetUrl(dish.video_url),
+            fallbackVideo: normalizeAssetUrl(dish.fallback_video_url),
+            poster: normalizeAssetUrl(dish.poster_url),
+            tintBackground: parseTintBackground(dish.tint),
+            description: dish.description,
+            weight: dish.weight,
+            calories: dish.calories,
+            protein: dish.protein,
+            fat: dish.fat,
+            carbs: dish.carbs,
+            allergens: dish.allergens || [],
+          }));
+
+        setRestaurant(mappedRestaurant);
+        setWorkMode(mappedRestaurant.workMode);
+        setCategories(mappedCategories);
+        setDishes(mappedDishes);
+        setActiveDishIndex(0);
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : "Failed to load menu";
+        setLoadError(message);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadMenu();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const playbackDishIndexes = useMemo(
+    () =>
+      categories.flatMap((cat) =>
+        dishes
+          .map((dish, index) => ({ dish, index }))
+          .filter(({ dish }) => dish.categoryId === cat.id)
+          .map(({ index }) => index)
+      ),
+    [categories, dishes]
   );
 
-  const getNextDishIndex = (fromIndex: number) => {
-    const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
-    if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
-    return playbackDishIndexes[(currentPlaybackIndex + 1) % playbackDishIndexes.length] ?? fromIndex;
-  };
+  const getNextDishIndex = useCallback(
+    (fromIndex: number) => {
+      const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
+      if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
+      return playbackDishIndexes[(currentPlaybackIndex + 1) % playbackDishIndexes.length] ?? fromIndex;
+    },
+    [playbackDishIndexes]
+  );
 
-  const getPrevDishIndex = (fromIndex: number) => {
-    const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
-    if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
-    return (
-      playbackDishIndexes[(currentPlaybackIndex - 1 + playbackDishIndexes.length) % playbackDishIndexes.length] ??
-      fromIndex
-    );
-  };
+  const getPrevDishIndex = useCallback(
+    (fromIndex: number) => {
+      const currentPlaybackIndex = playbackDishIndexes.indexOf(fromIndex);
+      if (currentPlaybackIndex === -1) return playbackDishIndexes[0] ?? 0;
+      return (
+        playbackDishIndexes[(currentPlaybackIndex - 1 + playbackDishIndexes.length) % playbackDishIndexes.length] ??
+        fromIndex
+      );
+    },
+    [playbackDishIndexes]
+  );
 
-  const currentDish = dishes[activeDishIndex];
-  const categoryDishes = dishes.filter((d) => d.categoryId === currentDish.categoryId);
-  const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish.id);
+  const categoryDishes = dishes.filter((d) => d.categoryId === currentDish?.categoryId);
+  const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish?.id);
   const isEffectivelyPaused = isHolding || isWelcomeOpen;
 
   const cartSummary = useMemo(() => {
@@ -392,6 +293,8 @@ export default function Home() {
 
   // Auto-advance through dishes
   useEffect(() => {
+    if (!currentDish) return;
+
     if (isEffectivelyPaused) return;
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
@@ -400,14 +303,18 @@ export default function Home() {
       setProgress(percent);
       if (percent >= 100) {
         setProgress(0);
+        setVideoSource("primary");
+        setIsVideoUnavailable(false);
         setActiveDishIndex((current) => getNextDishIndex(current));
       }
     }, 70);
     return () => window.clearInterval(timer);
-  }, [activeDishIndex, isEffectivelyPaused]);
+  }, [activeDishIndex, isEffectivelyPaused, currentDish, getNextDishIndex]);
 
   // Video playback control
   useEffect(() => {
+    if (!currentDish) return;
+
     const video = videoRef.current;
     if (!video) return;
     if (isEffectivelyPaused) {
@@ -418,12 +325,22 @@ export default function Home() {
     if (playPromise instanceof Promise) {
       playPromise.catch(() => {});
     }
-  }, [activeDishIndex, isEffectivelyPaused]);
+  }, [activeDishIndex, isEffectivelyPaused, currentDish]);
+
+  // Clear stale unavailable state whenever the source changes.
+  useEffect(() => {
+    setIsVideoUnavailable(false);
+  }, [activeVideoUrl]);
 
   // Preload next dish video
   useEffect(() => {
+    if (!currentDish) return;
+
     const nextDish = dishes[getNextDishIndex(activeDishIndex)];
-    const links = [nextDish.video, nextDish.fallbackVideo].map((href) => {
+    if (!nextDish) return;
+
+    const candidateUrls = [nextDish.video, nextDish.fallbackVideo].filter((href): href is string => Boolean(href));
+    const links = candidateUrls.map((href) => {
       const link = document.createElement("link");
       link.rel = "preload";
       link.as = "video";
@@ -436,7 +353,7 @@ export default function Home() {
         if (document.head.contains(link)) document.head.removeChild(link);
       });
     };
-  }, [activeDishIndex]);
+  }, [activeDishIndex, currentDish, dishes, getNextDishIndex]);
 
   // Hold timer cleanup
   useEffect(() => {
@@ -448,7 +365,7 @@ export default function Home() {
   // Scroll active category card into view when category changes
   useEffect(() => {
     const container = catContainerRef.current;
-    if (!container) return;
+    if (!container || !currentDish) return;
     const activeCatId = currentDish.categoryId;
     const activeCards = Array.from(
       container.querySelectorAll<HTMLButtonElement>(`[data-cat-id="${activeCatId}"]`)
@@ -465,7 +382,7 @@ export default function Home() {
     });
 
     targetCard.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [currentDish.categoryId]);
+  }, [currentDish]);
 
   // Start in the middle copy so users can swipe both directions endlessly.
   useEffect(() => {
@@ -497,20 +414,14 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isWelcomeOpen]);
 
-  const parsePrice = (priceLabel: string) => {
-    const parsed = Number.parseInt(priceLabel.replace(/[^\d]/g, ""), 10);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  };
-
   const addToCart = (dish: Dish) => {
     setCart((prev) => {
-      const key = dish.name;
+      const key = dish.id;
       const existing = prev[key];
-      const price = parsePrice(dish.price);
       if (existing) {
         return { ...prev, [key]: { ...existing, quantity: existing.quantity + 1 } };
       }
-      return { ...prev, [key]: { name: dish.name, price, quantity: 1 } };
+      return { ...prev, [key]: { name: dish.name, price: dish.price, quantity: 1 } };
     });
   };
 
@@ -559,12 +470,21 @@ export default function Home() {
 
   const toggleWorkMode = () => setWorkMode((prev) => (prev === "menu" ? "table" : "menu"));
 
+  const resetVideoState = () => {
+    setVideoSource("primary");
+    setIsVideoUnavailable(false);
+  };
+
   const goNext = () => {
+    if (playbackDishIndexes.length === 0) return;
+    resetVideoState();
     setProgress(0);
     setActiveDishIndex((current) => getNextDishIndex(current));
   };
 
   const goPrev = () => {
+    if (playbackDishIndexes.length === 0) return;
+    resetVideoState();
     setProgress(0);
     setActiveDishIndex((current) => getPrevDishIndex(current));
   };
@@ -603,12 +523,14 @@ export default function Home() {
     goNext();
   };
 
-  const handleSwipeStart = (e: React.TouchEvent) => {
+  const handleSwipeStart = (e: TouchEvent) => {
     swipeStartX.current = e.touches[0]?.clientX || 0;
     swipeStartY.current = e.touches[0]?.clientY || 0;
   };
 
-  const handleSwipeEnd = (e: React.TouchEvent) => {
+  const handleSwipeEnd = (e: TouchEvent) => {
+    if (!currentDish) return;
+
     const endX = e.changedTouches[0]?.clientX || 0;
     const endY = e.changedTouches[0]?.clientY || 0;
     const deltaX = endX - swipeStartX.current;
@@ -624,15 +546,15 @@ export default function Home() {
     }
   };
 
-  const handleCatSwipeStart = (e: React.TouchEvent) => {
+  const handleCatSwipeStart = (e: TouchEvent<HTMLDivElement>) => {
     e.stopPropagation();
   };
 
-  const handleCatSwipeEnd = (e: React.TouchEvent) => {
+  const handleCatSwipeEnd = (e: TouchEvent<HTMLDivElement>) => {
     e.stopPropagation();
   };
 
-  const handleCategoryScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleCategoryScroll = (e: UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
     const segmentWidth = container.scrollWidth / 3;
     if (segmentWidth === 0 || isWrappingCategoriesRef.current) return;
@@ -656,13 +578,52 @@ export default function Home() {
     });
   };
 
-  const jumpToCategory = (categoryId: number) => {
+  const jumpToCategory = (categoryId: string) => {
     const idx = dishes.findIndex((d) => d.categoryId === categoryId);
     if (idx !== -1) {
+      resetVideoState();
       setActiveDishIndex(idx);
       setProgress(0);
     }
   };
+
+  const handleVideoError = () => {
+    if (!currentDish) {
+      setIsVideoUnavailable(true);
+      return;
+    }
+
+    if (videoSource === "primary" && currentDish.fallbackVideo && currentDish.fallbackVideo !== currentDish.video) {
+      setVideoSource("fallback");
+      return;
+    }
+
+    setIsVideoUnavailable(true);
+  };
+
+  if (isLoading) {
+    return (
+      <main className="relative h-dvh w-full overflow-hidden bg-[var(--palette-black)] text-[var(--palette-white)]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[rgba(192,243,54,0.16)] via-[rgba(63,68,68,0.92)] to-[rgba(0,0,0,1)]" />
+        <div className="relative z-10 flex h-full items-center justify-center px-6 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[rgba(255,255,255,0.7)]">Loading menu...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!currentDish) {
+    return (
+      <main className="relative h-dvh w-full overflow-hidden bg-[var(--palette-black)] text-[var(--palette-white)]">
+        <div className="relative z-10 flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+          <h1 className="text-xl font-bold text-[var(--palette-white)]">Menu is unavailable</h1>
+          <p className="max-w-sm text-sm text-[rgba(255,255,255,0.7)]">
+            {loadError || "No dishes were returned by the API."}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -678,20 +639,13 @@ export default function Home() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(0,0,0,0.74)] p-4 backdrop-blur-sm">
           <div className="w-full max-w-md animate-in fade-in rounded-3xl border border-[rgba(255,255,0,0.45)] bg-[rgba(63,68,68,0.92)] px-6 py-7 text-center text-[var(--palette-white)] shadow-2xl">
             <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,0,0.5)] bg-[rgba(0,0,0,0.45)] px-3 py-1.5">
-              <Image
-                src="/logo.svg"
-                alt="Restaurant logo"
-                width={24}
-                height={24}
-                priority
-                className="h-6 w-6 rounded-full bg-[var(--palette-white)]"
-              />
+              <img src={logoSrc} alt="Restaurant logo" className="h-6 w-6 rounded-full bg-[var(--palette-white)] object-cover" />
               <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--palette-yellow)]">
-                Coffee Moose
+                {restaurantName}
               </span>
             </div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgba(255,255,0,0.85)]">Welcome</p>
-            <h2 className="mt-3 text-2xl font-bold leading-tight">Thank you and welcome to the &quot;Coffee Moose&quot;</h2>
+            <h2 className="mt-3 text-2xl font-bold leading-tight">{welcomeText}</h2>
             <p className="mt-3 text-sm text-[rgba(255,245,0,0.8)]">Tap continue to start browsing the menu.</p>
             <button
               type="button"
@@ -707,33 +661,40 @@ export default function Home() {
       {/* Full-screen background video */}
       <video
         ref={videoRef}
-        key={`${currentDish.video}-${currentDish.id}`}
+        key={`${activeVideoUrl}-${videoSource}-${currentDish.id}`}
         className="absolute inset-0 h-full w-full object-cover"
         autoPlay
         muted
         playsInline
         preload="auto"
         poster={currentDish.poster}
+        src={activeVideoUrl}
+        onLoadedData={() => setIsVideoUnavailable(false)}
+        onError={handleVideoError}
         onEnded={goNext}
-      >
-        <source src={currentDish.video} type="video/mp4" />
-        <source src={currentDish.fallbackVideo} type="video/mp4" />
-      </video>
+      />
+
+      {showVideoUnavailable && (
+  <div className="absolute inset-0 z-10 flex items-center justify-center bg-[rgba(0,0,0,0.45)] px-6 text-center">
+          <div className="max-w-md rounded-2xl border border-[rgba(255,255,0,0.45)] bg-[rgba(63,68,68,0.82)] px-5 py-4 backdrop-blur-sm">
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-[var(--palette-yellow)]">Video unavailable</p>
+            <p className="mt-2 text-sm text-[rgba(255,255,255,0.92)]">Video is not provided by the owner</p>
+          </div>
+        </div>
+      )}
 
       {/* Color tint overlay */}
-      <div className={`absolute inset-0 ${currentDish.tint}`} />
+      <div className="absolute inset-0" style={currentDish.tintBackground ? { backgroundImage: currentDish.tintBackground } : undefined} />
       {/* Gradient: dark top for readability → clear middle → dark bottom */}
       <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,0,0,0.78)] via-[rgba(63,68,68,0.22)] via-45% to-[rgba(0,0,0,0.9)]" />
 
       {/* Persistent logo watermark */}
       <div className="pointer-events-none absolute right-4 top-16 z-25 sm:right-7 sm:top-20">
         <div className="rounded-full border border-[rgba(255,255,0,0.35)] bg-[rgba(0,0,0,0.28)] p-1.5 backdrop-blur-[1.5px]">
-          <Image
-            src="/logo.svg"
-            alt="Coffee Moose watermark"
-            width={64}
-            height={64}
-            className="h-9 w-9 rounded-full opacity-[0.85] saturate-0 sm:h-18 sm:w-18"
+          <img
+            src={logoSrc}
+            alt={`${restaurantName} watermark`}
+            className="h-9 w-9 rounded-full object-cover opacity-[0.85] saturate-0 sm:h-18 sm:w-18"
           />
         </div>
       </div>
@@ -790,7 +751,7 @@ export default function Home() {
               {currentDish.name}
             </h1>
             <span className="mt-1 flex-shrink-0 text-2xl font-bold text-[var(--palette-yellow-soft)] drop-shadow sm:text-3xl">
-              {currentDish.price}
+              {formatPrice(currentDish.price)}
             </span>
           </div>
         </div>
@@ -827,7 +788,7 @@ export default function Home() {
         >
           {loopedCategories.map((cat, index) => {
             const isActive = cat.id === currentDish.categoryId;
-            const count = dishes.filter((d) => d.categoryId === cat.id).length;
+            const count = cat.dishCount || dishes.filter((d) => d.categoryId === cat.id).length;
             return (
               <button
                 key={`${cat.id}-${index}`}
@@ -921,10 +882,10 @@ export default function Home() {
                     <div key={item.key} className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[var(--palette-white)]">{item.name}</p>
-                        <p className="text-xs text-[var(--palette-yellow)]">{item.price} ₽ × {item.quantity}</p>
+                        <p className="text-xs text-[var(--palette-yellow)]">{formatPrice(item.price)} × {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-[var(--palette-yellow)]">{item.total} ₽</span>
+                        <span className="text-sm font-bold text-[var(--palette-yellow)]">{formatPrice(item.total)}</span>
                         <button
                           type="button"
                           onClick={() => removeFromCart(item.key)}
@@ -939,7 +900,7 @@ export default function Home() {
                 </div>
                 <div className="mt-5 flex items-center justify-between border-t border-[rgba(134,134,134,0.34)] pt-4">
                   <p className="text-base font-bold text-[var(--palette-white)]">Итого</p>
-                  <p className="text-2xl font-bold text-[var(--palette-yellow)]">{cartSummary.totalPrice} ₽</p>
+                  <p className="text-2xl font-bold text-[var(--palette-yellow)]">{formatPrice(cartSummary.totalPrice)}</p>
                 </div>
                 <button
                   type="button"
@@ -1055,7 +1016,7 @@ export default function Home() {
                 onClick={() => { addToCart(modal.dish!); closeModal(); }}
                 className="w-full rounded-2xl bg-[var(--palette-yellow)] py-4 text-base font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
               >
-                Выбрать — {modal.dish.price}
+                Выбрать - {formatPrice(modal.dish.price)}
               </button>
             </div>
           </div>
