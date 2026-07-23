@@ -131,6 +131,7 @@ export default function Home() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [videoSource, setVideoSource] = useState<"primary" | "fallback">("primary");
   const [isVideoUnavailable, setIsVideoUnavailable] = useState(false);
+const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isHoldingRef = useRef(false);
@@ -145,13 +146,13 @@ export default function Home() {
   const currentDish = dishes[activeDishIndex];
 
   const selectedVideoUrl =
-    videoSource === "primary"
-      ? currentDish?.video || currentDish?.fallbackVideo
-      : currentDish?.fallbackVideo;
-  const activeVideoUrl = selectedVideoUrl || PLACEHOLDER_VIDEO_URL;
-  const showVideoUnavailable = !selectedVideoUrl || isVideoUnavailable;
-
-  const currency = restaurant?.currency || "сомони";
+  videoSource === "primary"
+    ? currentDish?.video || currentDish?.fallbackVideo
+    : currentDish?.fallbackVideo;
+const hasPlayableVideo = Boolean(selectedVideoUrl) && !isVideoUnavailable;
+const hasPosterFallback = !hasPlayableVideo && Boolean(currentDish?.poster) && !isPosterUnavailable;
+const showVideoUnavailable = !hasPlayableVideo && !hasPosterFallback;  
+const currency = restaurant?.currency || "сомони";
   const restaurantName = restaurant?.name || "Restaurant";
   const welcomeText = restaurant?.welcomeText || "Welcome";
   const logoSrc = restaurant?.logoUrl || "/logo.svg";
@@ -328,10 +329,10 @@ export default function Home() {
   }, [activeDishIndex, isEffectivelyPaused, currentDish]);
 
   // Clear stale unavailable state whenever the source changes.
-  useEffect(() => {
-    setIsVideoUnavailable(false);
-  }, [activeVideoUrl]);
-
+useEffect(() => {
+  setIsVideoUnavailable(false);
+  setIsPosterUnavailable(false);
+}, [currentDish?.id]);
   // Preload next dish video
   useEffect(() => {
     if (!currentDish) return;
@@ -659,30 +660,40 @@ export default function Home() {
       )}
 
       {/* Full-screen background video */}
-      <video
-        ref={videoRef}
-        key={`${activeVideoUrl}-${videoSource}-${currentDish.id}`}
-        className="absolute inset-0 h-full w-full object-cover"
-        autoPlay
-        muted
-        playsInline
-        preload="auto"
-        poster={currentDish.poster}
-        src={activeVideoUrl}
-        onLoadedData={() => setIsVideoUnavailable(false)}
-        onError={handleVideoError}
-        onEnded={goNext}
-      />
+{hasPlayableVideo && (
+  <video
+    ref={videoRef}
+    key={`${selectedVideoUrl}-${videoSource}-${currentDish.id}`}
+    className="absolute inset-0 h-full w-full object-cover"
+    autoPlay
+    muted
+    playsInline
+    preload="auto"
+    poster={currentDish.poster}
+    src={selectedVideoUrl}
+    onLoadedData={() => setIsVideoUnavailable(false)}
+    onError={handleVideoError}
+    onEnded={goNext}
+  />
+)}
 
-      {showVideoUnavailable && (
+{hasPosterFallback && (
+  <img
+    src={currentDish.poster}
+    alt={currentDish.name}
+    className="absolute inset-0 h-full w-full object-cover"
+    onError={() => setIsPosterUnavailable(true)}
+  />
+)}
+
+{showVideoUnavailable && (
   <div className="absolute inset-0 z-10 flex items-center justify-center bg-[rgba(0,0,0,0.45)] px-6 text-center">
-          <div className="max-w-md rounded-2xl border border-[rgba(255,255,0,0.45)] bg-[rgba(63,68,68,0.82)] px-5 py-4 backdrop-blur-sm">
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-[var(--palette-yellow)]">Video unavailable</p>
-            <p className="mt-2 text-sm text-[rgba(255,255,255,0.92)]">Video is not provided by the owner</p>
-          </div>
-        </div>
-      )}
-
+    <div className="max-w-md rounded-2xl border border-[rgba(255,255,0,0.45)] bg-[rgba(63,68,68,0.82)] px-5 py-4 backdrop-blur-sm">
+      <p className="text-sm font-bold uppercase tracking-[0.14em] text-[var(--palette-yellow)]">Video unavailable</p>
+      <p className="mt-2 text-sm text-[rgba(255,255,255,0.92)]">Video is not provided by the owner</p>
+    </div>
+  </div>
+)}
       {/* Color tint overlay */}
       <div className="absolute inset-0" style={currentDish.tintBackground ? { backgroundImage: currentDish.tintBackground } : undefined} />
       {/* Gradient: dark top for readability → clear middle → dark bottom */}
