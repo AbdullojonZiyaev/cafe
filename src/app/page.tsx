@@ -661,10 +661,19 @@ useEffect(() => {
 
       {/* Full-screen background video */}
 {hasPlayableVideo && (
+  <div className="absolute inset-0 overflow-hidden">
+  <video
+    className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-60"
+    src={selectedVideoUrl}
+    muted
+    autoPlay
+    playsInline
+    aria-hidden="true"
+  />
   <video
     ref={videoRef}
     key={`${selectedVideoUrl}-${videoSource}-${currentDish.id}`}
-    className="absolute inset-0 h-full w-full object-cover"
+    className="absolute inset-0 h-full w-full object-contain"
     autoPlay
     muted
     playsInline
@@ -675,6 +684,7 @@ useEffect(() => {
     onError={handleVideoError}
     onEnded={goNext}
   />
+</div>
 )}
 
 {hasPosterFallback && (
