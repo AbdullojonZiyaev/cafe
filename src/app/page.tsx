@@ -647,7 +647,7 @@ useEffect(() => {
             </div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgba(255,255,0,0.85)]">Welcome</p>
             <h2 className="mt-3 text-2xl font-bold leading-tight">{welcomeText}</h2>
-            <p className="mt-3 text-sm text-[rgba(255,245,0,0.8)]">Tap continue to start browsing the menu.</p>
+            <p className="mt-3 text-sm text-[rgba(255,245,0,0.8)]">Tap continue to start browsing the menu. Powered by NETS</p>
             <button
               type="button"
               onClick={() => setIsWelcomeOpen(false)}
