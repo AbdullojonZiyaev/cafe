@@ -318,45 +318,33 @@ const currency = restaurant?.currency || "сомони";
 
     const video = videoRef.current;
     if (!video) return;
-    if (isEffectivelyPaused) {
-      video.pause();
-      return;
-    }
-    const playPromise = video.play();
-    if (playPromise instanceof Promise) {
-      playPromise.catch(() => {});
-    }
-  }, [activeDishIndex, isEffectivelyPaused, currentDish]);
 
+    if (isEffectivelyPaused) {
+        video.pause();
+        return;
+    }
+
+    const handleCanPlay = () => {
+        video.play().catch(() => {});
+    };
+
+    video.addEventListener("canplay", handleCanPlay);
+
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        handleCanPlay();
+    }
+
+    return () => {
+        video.removeEventListener("canplay", handleCanPlay);
+    };
+}, [activeDishIndex, isEffectivelyPaused, currentDish]);
   // Clear stale unavailable state whenever the source changes.
 useEffect(() => {
   setIsVideoUnavailable(false);
   setIsPosterUnavailable(false);
 }, [currentDish?.id]);
-  // Preload next dish video
-  useEffect(() => {
-    if (!currentDish) return;
-
-    const nextDish = dishes[getNextDishIndex(activeDishIndex)];
-    if (!nextDish) return;
-
-    const candidateUrls = [nextDish.video, nextDish.fallbackVideo].filter((href): href is string => Boolean(href));
-    const links = candidateUrls.map((href) => {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.as = "video";
-      link.href = href;
-      document.head.appendChild(link);
-      return link;
-    });
-    return () => {
-      links.forEach((link) => {
-        if (document.head.contains(link)) document.head.removeChild(link);
-      });
-    };
-  }, [activeDishIndex, currentDish, dishes, getNextDishIndex]);
-
-  // Hold timer cleanup
+  
+// Hold timer cleanup
   useEffect(() => {
     return () => {
       if (holdTimerRef.current !== null) window.clearTimeout(holdTimerRef.current);
@@ -399,6 +387,12 @@ useEffect(() => {
       }
     };
   }, []);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.load();
+}, [selectedVideoUrl]);
 
   // Secret admin shortcut Ctrl+Alt+T
   useEffect(() => {
@@ -514,15 +508,25 @@ useEffect(() => {
     return true;
   };
 
-  const handlePrevTap = () => {
-    if (shouldIgnoreHoldClick()) return;
-    goPrev();
-  };
+const handlePrevTap = () => {
+  if (shouldIgnoreHoldClick()) return;
+  const video = videoRef.current;
+  if (video && video.paused) {
+    video.play().catch(() => {});
+    return;
+  }
+  goPrev();
+};
 
-  const handleNextTap = () => {
-    if (shouldIgnoreHoldClick()) return;
-    goNext();
-  };
+const handleNextTap = () => {
+  if (shouldIgnoreHoldClick()) return;
+  const video = videoRef.current;
+  if (video && video.paused) {
+    video.play().catch(() => {});
+    return;
+  }
+  goNext();
+};
 
   const handleSwipeStart = (e: TouchEvent) => {
     swipeStartX.current = e.touches[0]?.clientX || 0;
@@ -662,22 +666,24 @@ useEffect(() => {
       {/* Full-screen background video */}
 {hasPlayableVideo && (
   <div className="absolute inset-0 overflow-hidden">
-  <video
-    className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl opacity-60"
-    src={selectedVideoUrl}
-    muted
-    autoPlay
-    playsInline
-    aria-hidden="true"
-  />
+    <div className="absolute inset-0 bg-black" />
+
+<div
+  className="absolute inset-0 opacity-60 blur-3xl"
+  style={{
+    background:
+      currentDish.tintBackground ??
+      "radial-gradient(circle at center, rgba(255,255,255,.15), transparent 70%)",
+  }}
+/>
   <video
     ref={videoRef}
-    key={`${selectedVideoUrl}-${videoSource}-${currentDish.id}`}
+    key={selectedVideoUrl}
     className="absolute inset-0 h-full w-full object-contain"
     autoPlay
     muted
     playsInline
-    preload="auto"
+    preload="metadata"
     poster={currentDish.poster}
     src={selectedVideoUrl}
     onLoadedData={() => setIsVideoUnavailable(false)}
