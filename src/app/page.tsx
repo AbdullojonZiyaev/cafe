@@ -74,6 +74,7 @@ type ApiMenuResponse = {
     fallback_video_url?: string;
     poster_url?: string;
     sort_order?: number;
+    updated_at?: string;
   }>;
 };
 
@@ -95,11 +96,16 @@ const DEFAULT_MENU_SLUG = "demo";
 const MEDIA_BASE_URL = "https://wc.nets.tj";
 const PLACEHOLDER_VIDEO_URL = "/public]/media/story-1-mobile.mp4";
 
-const normalizeAssetUrl = (url?: string | null) => {
+const normalizeAssetUrl = (url?: string | null, version?: string | null) => {
   if (!url) return undefined;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("/")) return `${MEDIA_BASE_URL}${url}`;
-  return `${MEDIA_BASE_URL}/${url}`;
+  const absolute = url.startsWith("http://") || url.startsWith("https://")
+    ? url
+    : url.startsWith("/")
+      ? `${MEDIA_BASE_URL}${url}`
+      : `${MEDIA_BASE_URL}/${url}`;
+  if (!version) return absolute;
+  const separator = absolute.includes("?") ? "&" : "?";
+  return `${absolute}${separator}v=${encodeURIComponent(version)}`;
 };
 
 const parseTintBackground = (tint?: string) => {
@@ -199,26 +205,26 @@ const currency = restaurant?.currency || "сомони";
             dishCount: category.dish_count || 0,
           }));
 
-        const mappedDishes = [...payload.dishes]
-          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-          .map((dish) => ({
-            id: dish.id,
-            categoryId: dish.category_id,
-            name: dish.name,
-            price: normalizeMenuPrice(dish.price),
-            tag: dish.tag || "Рекомендуем",
-            video: normalizeAssetUrl(dish.video_url),
-            fallbackVideo: normalizeAssetUrl(dish.fallback_video_url),
-            poster: normalizeAssetUrl(dish.poster_url),
-            tintBackground: parseTintBackground(dish.tint),
-            description: dish.description,
-            weight: dish.weight,
-            calories: dish.calories,
-            protein: dish.protein,
-            fat: dish.fat,
-            carbs: dish.carbs,
-            allergens: dish.allergens || [],
-          }));
+const mappedDishes = [...payload.dishes]
+  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+  .map((dish) => ({
+    id: dish.id,
+    categoryId: dish.category_id,
+    name: dish.name,
+    price: normalizeMenuPrice(dish.price),
+    tag: dish.tag || "Рекомендуем",
+    video: normalizeAssetUrl(dish.video_url, dish.updated_at),
+    fallbackVideo: normalizeAssetUrl(dish.fallback_video_url, dish.updated_at),
+    poster: normalizeAssetUrl(dish.poster_url, dish.updated_at),
+    tintBackground: parseTintBackground(dish.tint),
+    description: dish.description,
+    weight: dish.weight,
+    calories: dish.calories,
+    protein: dish.protein,
+    fat: dish.fat,
+    carbs: dish.carbs,
+    allergens: dish.allergens || [],
+  }));
 
         setRestaurant(mappedRestaurant);
         setWorkMode(mappedRestaurant.workMode);
