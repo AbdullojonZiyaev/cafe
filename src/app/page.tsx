@@ -91,7 +91,7 @@ type ModalState = {
   dish: Dish | null;
 };
 
-const DISH_DURATION_MS = 6500;
+const DISH_DURATION_MS = 10000;
 const DEFAULT_MENU_SLUG = "demo";
 const MEDIA_BASE_URL = "https://wc.nets.tj";
 const PLACEHOLDER_VIDEO_URL = "/public]/media/story-1-mobile.mp4";
@@ -161,7 +161,8 @@ const showVideoUnavailable = !hasPlayableVideo && !hasPosterFallback;
 const currency = restaurant?.currency || "сомони";
   const restaurantName = restaurant?.name || "Restaurant";
   const welcomeText = restaurant?.welcomeText || "Welcome";
-  const logoSrc = restaurant?.logoUrl || "/logoimenu.svg";
+  const logoSrc = restaurant?.logoUrl || "/logo.svg";
+  const secondaryLogoSrc = "/logoimenu.svg";
 
   const formatPrice = (price: number) => `${new Intl.NumberFormat("ru-RU").format(price)} ${currency}`;
 
@@ -335,15 +336,17 @@ const mappedDishes = [...payload.dishes]
     };
 
     video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("loadeddata", handleCanPlay);
 
-    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         handleCanPlay();
     }
 
     return () => {
         video.removeEventListener("canplay", handleCanPlay);
+        video.removeEventListener("loadeddata", handleCanPlay);
     };
-}, [activeDishIndex, isEffectivelyPaused, currentDish]);
+}, [activeDishIndex, isEffectivelyPaused, currentDish, selectedVideoUrl]);
   // Clear stale unavailable state whenever the source changes.
 useEffect(() => {
   setIsVideoUnavailable(false);
@@ -393,13 +396,6 @@ useEffect(() => {
       }
     };
   }, []);
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.load();
-}, [selectedVideoUrl]);
-
   // Secret admin shortcut Ctrl+Alt+T
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -686,14 +682,14 @@ const handleNextTap = () => {
     key={selectedVideoUrl}
     className="absolute inset-0 h-full w-full object-contain"
     autoPlay
+    loop
     muted
     playsInline
-    preload="metadata"
+    preload="auto"
     poster={currentDish.poster}
     src={selectedVideoUrl}
     onLoadedData={() => setIsVideoUnavailable(false)}
     onError={handleVideoError}
-    onEnded={goNext}
   />
 </div>
 )}
@@ -850,6 +846,18 @@ const handleNextTap = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* ─── SECONDARY LOGO BADGE ───────────────────────────── */}
+      <div
+        className="fixed bottom-6 left-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(63,68,68,0.92)] shadow-2xl"
+        aria-hidden="true"
+      >
+        <img
+          src={secondaryLogoSrc}
+          alt=""
+          className="h-8 w-8 rounded-full object-cover"
+        />
       </div>
 
       {/* ─── CART FAB ───────────────────────────────────────── */}
