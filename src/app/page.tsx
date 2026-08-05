@@ -161,7 +161,7 @@ const showVideoUnavailable = !hasPlayableVideo && !hasPosterFallback;
 const currency = restaurant?.currency || "сомони";
   const restaurantName = restaurant?.name || "Restaurant";
   const welcomeText = restaurant?.welcomeText || "Welcome";
-  const logoSrc = restaurant?.logoUrl || "/logo.svg";
+  const logoSrc = restaurant?.logoUrl || "/logoimenu.svg";
 
   const formatPrice = (price: number) => `${new Intl.NumberFormat("ru-RU").format(price)} ${currency}`;
 
