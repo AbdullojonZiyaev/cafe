@@ -86,11 +86,6 @@ type CartItem = {
 
 type WorkMode = "menu" | "table";
 
-type ModalState = {
-  isOpen: boolean;
-  dish: Dish | null;
-};
-
 const DISH_DURATION_MS = 10000;
 const DEFAULT_MENU_SLUG = "demo";
 const MEDIA_BASE_URL = "https://wc.nets.tj";
@@ -131,7 +126,7 @@ export default function Home() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [modal, setModal] = useState<ModalState>({ isOpen: false, dish: null });
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [notification, setNotification] = useState<{ isVisible: boolean; message: string }>({ isVisible: false, message: "" });
   const [workMode, setWorkMode] = useState<WorkMode>("menu");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -283,6 +278,7 @@ const mappedDishes = [...payload.dishes]
   const categoryDishes = dishes.filter((d) => d.categoryId === currentDish?.categoryId);
   const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish?.id);
   const isEffectivelyPaused = isHolding || isWelcomeOpen;
+  const isAutoAdvancePaused = isEffectivelyPaused || isDetailsOpen;
 
   const cartSummary = useMemo(() => {
     const items = Object.entries(cart).map(([key, item]) => ({
@@ -303,7 +299,7 @@ const mappedDishes = [...payload.dishes]
   useEffect(() => {
     if (!currentDish) return;
 
-    if (isEffectivelyPaused) return;
+    if (isAutoAdvancePaused) return;
     const startedAt = Date.now();
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
@@ -317,7 +313,7 @@ const mappedDishes = [...payload.dishes]
       }
     }, 70);
     return () => window.clearInterval(timer);
-  }, [activeDishIndex, isEffectivelyPaused, currentDish, getNextDishIndex]);
+  }, [activeDishIndex, isAutoAdvancePaused, currentDish, getNextDishIndex]);
 
   // Video playback control
   useEffect(() => {
@@ -351,6 +347,7 @@ const mappedDishes = [...payload.dishes]
 useEffect(() => {
   setIsVideoUnavailable(false);
   setIsPosterUnavailable(false);
+  setIsDetailsOpen(false);
 }, [currentDish?.id]);
   
 // Hold timer cleanup
@@ -447,8 +444,8 @@ useEffect(() => {
     }
   };
 
-  const openModal = (dish: Dish) => setModal({ isOpen: true, dish });
-  const closeModal = () => setModal({ isOpen: false, dish: null });
+  const openDetails = () => setIsDetailsOpen(true);
+  const toggleDetails = () => setIsDetailsOpen((prev) => !prev);
 
   const submitOrder = () => {
     const totalItems = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
@@ -549,7 +546,7 @@ const handleNextTap = () => {
       if (deltaX > 0) goPrev();
       else goNext();
     } else if (absDeltaY > absDeltaX && absDeltaY > 60 && deltaY < 0) {
-      openModal(currentDish);
+      openDetails();
     }
   };
 
@@ -787,22 +784,59 @@ const handleNextTap = () => {
 
       {/* ─── BOTTOM: Price + CTA + Category nav ───────────────── */}
       <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-6 sm:px-7">
-        {/* CTA row */}
-        <div key={`cta-${currentDish.id}`} className="mb-4 flex items-center gap-3 fade-in-up">
-          <button
-            type="button"
-            onClick={() => openModal(currentDish)}
-            className="rounded-2xl border border-[rgba(60,207,187,0.55)] bg-[rgba(63,68,68,0.5)] px-4 py-3 text-xs font-bold uppercase tracking-wide text-[var(--palette-white)] backdrop-blur-sm transition hover:bg-[rgba(60,207,187,0.25)] active:scale-95"
-          >
-            Подробнее
-          </button>
-          <button
-            type="button"
-            onClick={() => addToCart(currentDish)}
-            className="flex-1 rounded-2xl bg-[var(--palette-yellow)] py-3 text-sm font-bold uppercase tracking-wide text-[var(--palette-black)] shadow-lg transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.97]"
-          >
-            Выбрать
-          </button>
+        {/* CTA row — the brief description expands upward in place (Shorts-style); the select
+            button sits in its own flow div, unaffected since the description is absolutely positioned */}
+        <div key={`cta-${currentDish.id}`} className="relative mb-4 fade-in-up">
+          {currentDish.description && (
+            <div
+              className={`absolute bottom-0 left-0 right-[calc(35%+0.75rem)] z-10 overflow-y-auto no-scrollbar transition-[max-height] duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                isDetailsOpen ? "max-h-[45vh]" : "max-h-16"
+              }`}
+            >
+              <button type="button" onClick={toggleDetails} aria-expanded={isDetailsOpen} className="w-full text-left">
+                <p className="text-sm leading-relaxed text-[rgba(255,255,255,0.88)] drop-shadow">
+                  {currentDish.description}
+                </p>
+                {(currentDish.weight || currentDish.calories || currentDish.protein || currentDish.fat || currentDish.carbs) && (
+                  <div
+                    className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[rgba(255,255,255,0.75)] transition-opacity duration-300 ${
+                      isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
+                    }`}
+                  >
+                    {currentDish.weight && <span>{currentDish.weight}</span>}
+                    {currentDish.calories != null && <span>{currentDish.calories} ккал</span>}
+                    {currentDish.protein != null && <span>Б: {currentDish.protein}г</span>}
+                    {currentDish.fat != null && <span>Ж: {currentDish.fat}г</span>}
+                    {currentDish.carbs != null && <span>У: {currentDish.carbs}г</span>}
+                  </div>
+                )}
+                {currentDish.allergens && currentDish.allergens.length > 0 && (
+                  <p
+                    className={`mt-2 text-xs text-[rgba(255,255,0,0.85)] transition-opacity duration-300 ${
+                      isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
+                    }`}
+                  >
+                    <span className="font-semibold">Аллергены: </span>
+                    {currentDish.allergens.join(", ")}
+                  </p>
+                )}
+                <span className="mt-0.5 block text-xs font-semibold text-[var(--palette-yellow)]">
+                  {isDetailsOpen ? "Скрыть" : "Показать полностью"}
+                </span>
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-start gap-3">
+            <span className="min-w-0 flex-1" />
+            <button
+              type="button"
+              onClick={() => addToCart(currentDish)}
+              className="w-[35%] flex-shrink-0 rounded-2xl bg-[var(--palette-yellow)] px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-[var(--palette-black)] shadow-lg transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.97]"
+            >
+              Выбрать
+            </button>
+          </div>
         </div>
 
         {/* Category card gallery — carousel with center focus */}
@@ -988,75 +1022,6 @@ const handleNextTap = () => {
                 className="w-full rounded-xl bg-[rgba(134,134,134,0.2)] px-4 py-3 text-sm font-semibold text-[rgba(255,245,0,0.75)] hover:bg-[rgba(134,134,134,0.35)]"
               >
                 Закрыть
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── PRODUCT DETAIL MODAL ───────────────────────────── */}
-      {modal.isOpen && modal.dish && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.62)] p-4 backdrop-blur-sm"
-          onClick={closeModal}
-        >
-          <div
-            className="w-full max-w-lg max-h-[86vh] animate-in fade-in rounded-3xl bg-[rgba(63,68,68,0.98)] p-6 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--palette-white)]">{modal.dish.name}</h2>
-                {modal.dish.weight && (
-                  <p className="mt-1 text-sm text-[var(--palette-yellow)]">{modal.dish.weight}</p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[rgba(134,134,134,0.24)] text-sm text-[var(--palette-white)] hover:bg-[rgba(134,134,134,0.42)]"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-5">
-              {modal.dish.description && (
-                <p className="text-sm leading-relaxed text-[rgba(255,245,0,0.92)]">
-                  {modal.dish.description}
-                </p>
-              )}
-              {(modal.dish.calories || modal.dish.protein || modal.dish.fat || modal.dish.carbs) && (
-                <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[rgba(134,134,134,0.18)] p-4">
-                  {[
-                    { label: "Ккал", value: modal.dish.calories },
-                    { label: "Белки", value: modal.dish.protein ? `${modal.dish.protein}г` : null },
-                    { label: "Жиры", value: modal.dish.fat ? `${modal.dish.fat}г` : null },
-                    { label: "Углев.", value: modal.dish.carbs ? `${modal.dish.carbs}г` : null },
-                  ].map(({ label, value }) =>
-                    value ? (
-                      <div key={label} className="text-center">
-                        <p className="text-base font-bold text-[var(--palette-white)]">{value}</p>
-                        <p className="mt-0.5 text-[10px] uppercase tracking-wide text-[rgba(60,207,187,0.95)]">{label}</p>
-                      </div>
-                    ) : null
-                  )}
-                </div>
-              )}
-              {modal.dish.allergens && modal.dish.allergens.length > 0 && (
-                <div className="flex items-start gap-2 rounded-xl border border-[rgba(255,255,0,0.45)] bg-[rgba(255,255,0,0.12)] px-3 py-2">
-                  <span className="mt-0.5 text-sm">⚠️</span>
-                  <p className="text-xs text-[var(--palette-white)]">
-                    <span className="font-semibold">Аллергены: </span>
-                    {modal.dish.allergens.join(", ")}
-                  </p>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => { addToCart(modal.dish!); closeModal(); }}
-                className="w-full rounded-2xl bg-[var(--palette-yellow)] py-4 text-base font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
-              >
-                Выбрать - {formatPrice(modal.dish.price)}
               </button>
             </div>
           </div>
