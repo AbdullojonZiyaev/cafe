@@ -5,7 +5,10 @@ services:
       args:
         NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-https://wc.nets.tj}
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Host networking: the backend runs as a bare uvicorn process on the host,
+    # not in Docker, so the container needs the host's network namespace to
+    # reach it via `localhost`. Port mapping is not used/needed in this mode —
+    # the app binds directly to the host's port 3000 (see PORT in Dockerfile).
+    network_mode: host
     environment:
       API_BASE_URL: ${API_BASE_URL:-https://wc.nets.tj/api/public}
