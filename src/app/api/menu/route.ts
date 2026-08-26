@@ -22,7 +22,8 @@ export async function GET(request: Request) {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[menu] fetch failed for ${endpoint}:`, error);
     return NextResponse.json(
       { error: "Failed to fetch menu from upstream API" },
       { status: 502 }
