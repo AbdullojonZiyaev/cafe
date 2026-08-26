@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const API_BASE_URL = "https://wc.nets.tj/api/public";
+const API_BASE_URL = process.env.API_BASE_URL || "https://wc.nets.tj/api/public";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

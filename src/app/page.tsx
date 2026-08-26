@@ -88,7 +88,7 @@ type WorkMode = "menu" | "table";
 
 const DISH_DURATION_MS = 10000;
 const DEFAULT_MENU_SLUG = "demo";
-const MEDIA_BASE_URL = "https://wc.nets.tj";
+const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_BASE_URL || "https://wc.nets.tj";
 const PLACEHOLDER_VIDEO_URL = "/public]/media/story-1-mobile.mp4";
 
 const normalizeAssetUrl = (url?: string | null, version?: string | null) => {

@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Видеоменю
 
-## Getting Started
+Next.js сторис-меню с видео для кафе/ресторана.
 
-First, run the development server:
+## Разработка
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Открыть [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Переменные окружения
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Переменная | Где используется | Назначение |
+| --- | --- | --- |
+| `API_BASE_URL` | сервер (`src/app/api/menu/route.ts`) | Базовый URL бэкенда меню. Можно менять без пересборки образа. |
+| `NEXT_PUBLIC_MEDIA_BASE_URL` | клиент (`src/app/page.tsx`) | Базовый URL для относительных ссылок на медиа (видео/фото блюд). Вшивается в бандл на этапе сборки. |
 
-## Learn More
+Если переменные не заданы, используются значения по умолчанию (`https://wc.nets.tj`).
 
-To learn more about Next.js, take a look at the following resources:
+## Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_MEDIA_BASE_URL=https://your-backend.example \
+  -t cafe-menu .
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+docker run -p 3000:3000 \
+  -e API_BASE_URL=https://your-backend.example/api/public \
+  cafe-menu
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`NEXT_PUBLIC_*` переменные нужны на этапе `docker build` (попадают в клиентский код), `API_BASE_URL` — на этапе `docker run` (используется только на сервере).
