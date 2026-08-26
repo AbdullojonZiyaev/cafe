@@ -1,0 +1,11 @@
+services:
+  cafe-menu:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-https://wc.nets.tj}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-https://wc.nets.tj/api/public}

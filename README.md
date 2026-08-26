@@ -22,6 +22,16 @@ npm run dev
 
 ## Docker
 
+Самый простой способ — через `docker compose`:
+
+```bash
+cp .env.example .env
+# отредактировать .env под свой бэкенд
+docker compose up -d --build
+```
+
+Либо вручную, без compose:
+
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_MEDIA_BASE_URL=https://your-backend.example \
@@ -32,4 +42,4 @@ docker run -p 3000:3000 \
   cafe-menu
 ```
 
-`NEXT_PUBLIC_*` переменные нужны на этапе `docker build` (попадают в клиентский код), `API_BASE_URL` — на этапе `docker run` (используется только на сервере).
+`NEXT_PUBLIC_*` переменные нужны на этапе сборки (попадают в клиентский код) — при изменении `.env` нужен `--build`. `API_BASE_URL` читается на сервере при каждом запросе — его можно менять и просто перезапуском контейнера.
