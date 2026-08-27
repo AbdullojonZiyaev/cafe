@@ -794,32 +794,44 @@ const handleNextTap = () => {
               }`}
             >
               <button type="button" onClick={toggleDetails} aria-expanded={isDetailsOpen} className="w-full text-left">
-                <p className="text-sm leading-relaxed text-[rgba(255,255,255,0.88)] drop-shadow">
+                <p
+                  className={`text-sm leading-relaxed text-[rgba(255,255,255,0.88)] drop-shadow ${
+                    isDetailsOpen ? "" : "line-clamp-1"
+                  }`}
+                >
                   {currentDish.description}
                 </p>
-                {(currentDish.weight || currentDish.calories || currentDish.protein || currentDish.fat || currentDish.carbs) && (
-                  <div
-                    className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[rgba(255,255,255,0.75)] transition-opacity duration-300 ${
-                      isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
-                    }`}
-                  >
-                    {currentDish.weight && <span>{currentDish.weight}</span>}
-                    {currentDish.calories != null && <span>{currentDish.calories} ккал</span>}
-                    {currentDish.protein != null && <span>Б: {currentDish.protein}г</span>}
-                    {currentDish.fat != null && <span>Ж: {currentDish.fat}г</span>}
-                    {currentDish.carbs != null && <span>У: {currentDish.carbs}г</span>}
+                <div
+                  className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                    isDetailsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    {(currentDish.weight || currentDish.calories || currentDish.protein || currentDish.fat || currentDish.carbs) && (
+                      <div
+                        className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[rgba(255,255,255,0.75)] transition-opacity duration-300 ${
+                          isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
+                        }`}
+                      >
+                        {currentDish.weight && <span>{currentDish.weight}</span>}
+                        {currentDish.calories != null && <span>{currentDish.calories} ккал</span>}
+                        {currentDish.protein != null && <span>Б: {currentDish.protein}г</span>}
+                        {currentDish.fat != null && <span>Ж: {currentDish.fat}г</span>}
+                        {currentDish.carbs != null && <span>У: {currentDish.carbs}г</span>}
+                      </div>
+                    )}
+                    {currentDish.allergens && currentDish.allergens.length > 0 && (
+                      <p
+                        className={`mt-2 text-xs text-[rgba(255,255,0,0.85)] transition-opacity duration-300 ${
+                          isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
+                        }`}
+                      >
+                        <span className="font-semibold">Аллергены: </span>
+                        {currentDish.allergens.join(", ")}
+                      </p>
+                    )}
                   </div>
-                )}
-                {currentDish.allergens && currentDish.allergens.length > 0 && (
-                  <p
-                    className={`mt-2 text-xs text-[rgba(255,255,0,0.85)] transition-opacity duration-300 ${
-                      isDetailsOpen ? "opacity-100 delay-100" : "opacity-0"
-                    }`}
-                  >
-                    <span className="font-semibold">Аллергены: </span>
-                    {currentDish.allergens.join(", ")}
-                  </p>
-                )}
+                </div>
                 <span className="mt-0.5 block text-xs font-semibold text-[var(--palette-yellow)]">
                   {isDetailsOpen ? "Скрыть" : "Показать полностью"}
                 </span>
