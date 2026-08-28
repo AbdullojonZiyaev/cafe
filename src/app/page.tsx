@@ -484,6 +484,16 @@ useEffect(() => {
   };
 
   const startHoldPause = (pointerType: string) => {
+    // Mobile browsers often block autoplay until a real user gesture lands.
+    // Any tap/touch on the stage is such a gesture, so use it to unstick
+    // playback if the video silently failed to autoplay.
+    if (!isWelcomeOpen) {
+      const video = videoRef.current;
+      if (video && video.paused) {
+        video.play().catch(() => {});
+      }
+    }
+
     if (pointerType !== "touch" && pointerType !== "pen") return;
     if (holdTimerRef.current !== null) window.clearTimeout(holdTimerRef.current);
     holdTriggeredRef.current = false;
@@ -652,7 +662,13 @@ const handleNextTap = () => {
             <h2 className="mt-3 text-2xl font-bold leading-tight">{welcomeText}</h2>
             <button
               type="button"
-              onClick={() => setIsWelcomeOpen(false)}
+              onClick={() => {
+                setIsWelcomeOpen(false);
+                // Play synchronously inside the click handler so mobile
+                // browsers count it as a user-initiated gesture, rather
+                // than relying on the effect that fires after re-render.
+                videoRef.current?.play().catch(() => {});
+              }}
               className="mt-6 w-full rounded-2xl bg-[var(--palette-yellow)] py-3 text-sm font-bold uppercase tracking-wide text-[var(--palette-black)] transition hover:bg-[var(--palette-yellow-soft)] active:scale-[0.98]"
             >
               Continue
