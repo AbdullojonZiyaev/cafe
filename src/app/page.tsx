@@ -87,6 +87,8 @@ type CartItem = {
 type WorkMode = "menu" | "table";
 
 const DISH_DURATION_MS = 10000;
+const VIDEO_STALL_TIMEOUT_MS = 6000;
+const MENU_REFRESH_INTERVAL_MS = 120000;
 const DEFAULT_MENU_SLUG = "demo";
 const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_BASE_URL || "https://wc.nets.tj";
 const PLACEHOLDER_VIDEO_URL = "/public]/media/story-1-mobile.mp4";
@@ -135,6 +137,9 @@ export default function Home() {
 const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const preloadVideoRef = useRef<HTMLVideoElement | null>(null);
+  const stallTimerRef = useRef<number | null>(null);
+  const currentDishIdRef = useRef<string | null>(null);
   const isHoldingRef = useRef(false);
   const holdTimerRef = useRef<number | null>(null);
   const holdTriggeredRef = useRef(false);
@@ -152,7 +157,26 @@ const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
     : currentDish?.fallbackVideo;
 const hasPlayableVideo = Boolean(selectedVideoUrl) && !isVideoUnavailable;
 const hasPosterFallback = !hasPlayableVideo && Boolean(currentDish?.poster) && !isPosterUnavailable;
-const showVideoUnavailable = !hasPlayableVideo && !hasPosterFallback;  
+const showVideoUnavailable = !hasPlayableVideo && !hasPosterFallback;
+
+  // Shared by the real <video onError> handler and the stall-timeout below:
+  // on a bad connection the video often never fires `error` at all, it just
+  // buffers forever, so we treat "never became playable in time" the same
+  // as a hard failure and fall through primary -> fallback -> poster -> message.
+  const handleVideoFailure = useCallback(() => {
+    if (!currentDish) {
+      setIsVideoUnavailable(true);
+      return;
+    }
+
+    setVideoSource((prevSource) => {
+      if (prevSource === "primary" && currentDish.fallbackVideo && currentDish.fallbackVideo !== currentDish.video) {
+        return "fallback";
+      }
+      setIsVideoUnavailable(true);
+      return prevSource;
+    });
+  }, [currentDish]);
 const currency = restaurant?.currency || "сомони";
   const restaurantName = restaurant?.name || "Restaurant";
   const welcomeText = restaurant?.welcomeText || "Welcome";
@@ -162,11 +186,17 @@ const currency = restaurant?.currency || "сомони";
   const formatPrice = (price: number) => `${new Intl.NumberFormat("ru-RU").format(price)} ${currency}`;
 
   useEffect(() => {
+    currentDishIdRef.current = currentDish?.id ?? null;
+  }, [currentDish?.id]);
+
+  useEffect(() => {
     let cancelled = false;
 
-    const loadMenu = async () => {
-      setIsLoading(true);
-      setLoadError(null);
+    const loadMenu = async (isInitial: boolean) => {
+      if (isInitial) {
+        setIsLoading(true);
+        setLoadError(null);
+      }
 
       try {
         const slug = process.env.NEXT_PUBLIC_MENU_SLUG || DEFAULT_MENU_SLUG;
@@ -223,23 +253,45 @@ const mappedDishes = [...payload.dishes]
   }));
 
         setRestaurant(mappedRestaurant);
-        setWorkMode(mappedRestaurant.workMode);
         setCategories(mappedCategories);
         setDishes(mappedDishes);
-        setActiveDishIndex(0);
+
+        if (isInitial) {
+          setWorkMode(mappedRestaurant.workMode);
+          setActiveDishIndex(0);
+        } else {
+          // Keep the viewer's place in the rotation across a background
+          // refresh instead of jumping back to dish 0. workMode is
+          // intentionally left alone here: it can be flipped locally from
+          // the admin panel (toggleWorkMode), and a background poll
+          // shouldn't silently revert that mid-shift.
+          const preservedId = currentDishIdRef.current;
+          const preservedIndex = preservedId
+            ? mappedDishes.findIndex((dish) => dish.id === preservedId)
+            : -1;
+          setActiveDishIndex(preservedIndex === -1 ? 0 : preservedIndex);
+        }
       } catch (error) {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : "Failed to load menu";
-        setLoadError(message);
+        if (isInitial) {
+          setLoadError(message);
+        } else {
+          // A single failed background poll (transient network blip) shouldn't
+          // blow away a menu that's already loaded and playing fine.
+          console.error("[menu] background refresh failed:", message);
+        }
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && isInitial) setIsLoading(false);
       }
     };
 
-    loadMenu();
+    loadMenu(true);
+    const intervalId = window.setInterval(() => loadMenu(false), MENU_REFRESH_INTERVAL_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -274,6 +326,33 @@ const mappedDishes = [...payload.dishes]
     },
     [playbackDishIndexes]
   );
+
+  // Warm the browser's ordinary HTTP cache for the upcoming dish's video
+  // while the current one plays, so bad connections have a head start
+  // instead of starting the fetch from zero on advance. Deliberately no
+  // persistent storage (no Service Worker / IndexedDB) is involved — every
+  // asset URL already carries `?v=<updated_at>` (see normalizeAssetUrl), so
+  // a content update on the backend changes the URL and this preload (and
+  // the browser cache behind it) simply never touches the stale one.
+  const nextPreloadDish =
+    playbackDishIndexes.length > 1 ? dishes[getNextDishIndex(activeDishIndex)] : undefined;
+  const preloadVideoUrl =
+    nextPreloadDish && nextPreloadDish.id !== currentDish?.id
+      ? nextPreloadDish.video || nextPreloadDish.fallbackVideo
+      : undefined;
+
+  useEffect(() => {
+    const preloadVideo = preloadVideoRef.current;
+    if (!preloadVideo || !preloadVideoUrl) return;
+
+    preloadVideo.src = preloadVideoUrl;
+    preloadVideo.load();
+    // Some mobile browsers (notably iOS Safari) ignore preload="auto" for
+    // off-screen video and won't fetch any data until playback is
+    // requested. Muted play-then-immediately-pause forces the buffer to
+    // actually warm up without ever being visible or audible to the user.
+    preloadVideo.play().then(() => preloadVideo.pause()).catch(() => {});
+  }, [preloadVideoUrl]);
 
   const categoryDishes = dishes.filter((d) => d.categoryId === currentDish?.categoryId);
   const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish?.id);
@@ -327,7 +406,15 @@ const mappedDishes = [...payload.dishes]
         return;
     }
 
+    const clearStallTimer = () => {
+      if (stallTimerRef.current !== null) {
+        window.clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
+      }
+    };
+
     const handleCanPlay = () => {
+        clearStallTimer();
         video.play().catch(() => {});
     };
 
@@ -336,13 +423,23 @@ const mappedDishes = [...payload.dishes]
 
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         handleCanPlay();
+    } else {
+        // Bad connections often never fire a real `error` event — the video
+        // just sits buffering forever. Give it a fixed window to become
+        // playable, then treat it as failed so we fall back instead of
+        // leaving a black screen up indefinitely.
+        stallTimerRef.current = window.setTimeout(() => {
+          stallTimerRef.current = null;
+          handleVideoFailure();
+        }, VIDEO_STALL_TIMEOUT_MS);
     }
 
     return () => {
         video.removeEventListener("canplay", handleCanPlay);
         video.removeEventListener("loadeddata", handleCanPlay);
+        clearStallTimer();
     };
-}, [activeDishIndex, isEffectivelyPaused, currentDish, selectedVideoUrl]);
+}, [activeDishIndex, isEffectivelyPaused, currentDish, selectedVideoUrl, handleVideoFailure]);
   // Clear stale unavailable state whenever the source changes.
 useEffect(() => {
   setIsVideoUnavailable(false);
@@ -601,20 +698,6 @@ const handleNextTap = () => {
     }
   };
 
-  const handleVideoError = () => {
-    if (!currentDish) {
-      setIsVideoUnavailable(true);
-      return;
-    }
-
-    if (videoSource === "primary" && currentDish.fallbackVideo && currentDish.fallbackVideo !== currentDish.video) {
-      setVideoSource("fallback");
-      return;
-    }
-
-    setIsVideoUnavailable(true);
-  };
-
   if (isLoading) {
     return (
       <main className="relative h-dvh w-full overflow-hidden bg-[var(--palette-black)] text-[var(--palette-white)]">
@@ -702,10 +785,19 @@ const handleNextTap = () => {
     poster={currentDish.poster}
     src={selectedVideoUrl}
     onLoadedData={() => setIsVideoUnavailable(false)}
-    onError={handleVideoError}
+    onError={handleVideoFailure}
   />
 </div>
 )}
+
+<video
+  ref={preloadVideoRef}
+  muted
+  playsInline
+  preload="auto"
+  aria-hidden="true"
+  style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+/>
 
 {hasPosterFallback && (
   <img
