@@ -135,9 +135,9 @@ export default function Home() {
   const [videoSource, setVideoSource] = useState<"primary" | "fallback">("primary");
   const [isVideoUnavailable, setIsVideoUnavailable] = useState(false);
 const [isPosterUnavailable, setIsPosterUnavailable] = useState(false);
+const [isBuffering, setIsBuffering] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const preloadVideoRef = useRef<HTMLVideoElement | null>(null);
   const stallTimerRef = useRef<number | null>(null);
   const currentDishIdRef = useRef<string | null>(null);
   const isHoldingRef = useRef(false);
@@ -327,33 +327,6 @@ const mappedDishes = [...payload.dishes]
     [playbackDishIndexes]
   );
 
-  // Warm the browser's ordinary HTTP cache for the upcoming dish's video
-  // while the current one plays, so bad connections have a head start
-  // instead of starting the fetch from zero on advance. Deliberately no
-  // persistent storage (no Service Worker / IndexedDB) is involved — every
-  // asset URL already carries `?v=<updated_at>` (see normalizeAssetUrl), so
-  // a content update on the backend changes the URL and this preload (and
-  // the browser cache behind it) simply never touches the stale one.
-  const nextPreloadDish =
-    playbackDishIndexes.length > 1 ? dishes[getNextDishIndex(activeDishIndex)] : undefined;
-  const preloadVideoUrl =
-    nextPreloadDish && nextPreloadDish.id !== currentDish?.id
-      ? nextPreloadDish.video || nextPreloadDish.fallbackVideo
-      : undefined;
-
-  useEffect(() => {
-    const preloadVideo = preloadVideoRef.current;
-    if (!preloadVideo || !preloadVideoUrl) return;
-
-    preloadVideo.src = preloadVideoUrl;
-    preloadVideo.load();
-    // Some mobile browsers (notably iOS Safari) ignore preload="auto" for
-    // off-screen video and won't fetch any data until playback is
-    // requested. Muted play-then-immediately-pause forces the buffer to
-    // actually warm up without ever being visible or audible to the user.
-    preloadVideo.play().then(() => preloadVideo.pause()).catch(() => {});
-  }, [preloadVideoUrl]);
-
   const categoryDishes = dishes.filter((d) => d.categoryId === currentDish?.categoryId);
   const dishIndexInCategory = categoryDishes.findIndex((d) => d.id === currentDish?.id);
   const isEffectivelyPaused = isHolding || isWelcomeOpen;
@@ -445,6 +418,7 @@ useEffect(() => {
   setIsVideoUnavailable(false);
   setIsPosterUnavailable(false);
   setIsDetailsOpen(false);
+  setIsBuffering(true);
 }, [currentDish?.id]);
   
 // Hold timer cleanup
@@ -786,18 +760,21 @@ const handleNextTap = () => {
     src={selectedVideoUrl}
     onLoadedData={() => setIsVideoUnavailable(false)}
     onError={handleVideoFailure}
+    onWaiting={() => setIsBuffering(true)}
+    onPlaying={() => setIsBuffering(false)}
   />
 </div>
 )}
 
-<video
-  ref={preloadVideoRef}
-  muted
-  playsInline
-  preload="auto"
-  aria-hidden="true"
-  style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
-/>
+{hasPlayableVideo && isBuffering && !isEffectivelyPaused && (
+  <div className="absolute inset-0 z-10 flex items-center justify-center">
+    <div
+      className="h-10 w-10 animate-spin rounded-full border-[3px] border-[rgba(255,255,255,0.25)] border-t-[var(--palette-yellow)]"
+      role="status"
+      aria-label="Loading video"
+    />
+  </div>
+)}
 
 {hasPosterFallback && (
   <img
